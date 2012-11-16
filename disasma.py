@@ -78,11 +78,9 @@ def loadMachOFatFile(filename):
 	header = MachOFatHeader(inputfile)
 	
 	if header.magic != 0xcafebabe:
-		print "wrong magic: %s" % header.magic
 		return None
 
 	for i in xrange(header.numberOfArchs):
-		
 		arch = MachOFatArchsTable(inputfile, 8 + 20 * i)
 
 		if arch.cputype == 7: # 7 == intel 32 bit
