@@ -1,0 +1,18 @@
+{ "name": "Disasma",
+  "scopeName": "source.disasm",
+  "fileTypes": ["disasm"],
+   "patterns": [
+    { "name"	: "entity.name.function.disasm",
+  	  "begin"	: "Contents",
+  	  "end"		: ":",
+  	  "comment"	: "titolo di sezione"
+  	},
+  	{  "name": "comment.block",
+  	   "match": "file format"
+  	},
+    {  "name": "constant.numeric.disasm",
+       "match": "[0-9a-fA-F]{7}\\w" 
+    }
+  	],
+  	"uuid":"1f7eca28-7c9b-48d5-92e9-987c5686d791"
+}

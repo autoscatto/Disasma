@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>fileTypes</key>
+	<array>
+		<string>disasm</string>
+	</array>
+	<key>name</key>
+	<string>Disasma</string>
+	<key>patterns</key>
+	<array>
+		<dict>
+			<key>begin</key>
+			<string>Contents</string>
+			<key>comment</key>
+			<string>titolo di sezione</string>
+			<key>end</key>
+			<string>:</string>
+			<key>name</key>
+			<string>entity.name.function.disasm</string>
+		</dict>
+		<dict>
+			<key>match</key>
+			<string>file format</string>
+			<key>name</key>
+			<string>comment.block</string>
+		</dict>
+		<dict>
+			<key>match</key>
+			<string>[0-9a-fA-F]{7}\w</string>
+			<key>name</key>
+			<string>constant.numeric.disasm</string>
+		</dict>
+	</array>
+	<key>scopeName</key>
+	<string>source.disasm</string>
+	<key>uuid</key>
+	<string>1f7eca28-7c9b-48d5-92e9-987c5686d791</string>
+</dict>
+</plist>
