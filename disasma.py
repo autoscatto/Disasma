@@ -27,11 +27,9 @@ class NamedStruct:
 		self.contents = self.struct.unpack_from(data, offset)
 
 	def __getattr__(self, name):
-		i = 0
-		for membername, formattype in self.definition:
+		for i, (membername, formattype) in enumerate(self.definition):
 			if name == membername:
 				return self.contents[i]
-			i += 1
 
 class MachOFatHeader(NamedStruct):
 	endianness = '>'
