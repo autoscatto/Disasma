@@ -12,18 +12,79 @@ import gzip
 import subprocess
 import struct
 
+class NamedStruct:
+	struct     = None
+	endianness = ''
+	definition = ()
+
+	def __init__(self, data, offset = 0):
+		if self.struct is None:
+			format = self.endianness + ''.join([formattype for name, formattype in self.definition])
+			self.struct = struct.Struct(format)
+
+		self.contents = self.struct.unpack_from(data, offset)
+
+	def __getattr__(self, name):
+		i = 0
+		for membername, formattype in self.definition:
+			if name == membername:
+				return self.contents[i]
+			i += 1
+
+class MachOFatHeader(NamedStruct):
+	endianness = '>'
+	definition = (
+		('magic', 'I'),
+		('numberOfArchs', 'I')
+	)
+
+class MachOFatArchsTable(NamedStruct):
+	endianness = '>'
+	definition = (
+		('cputype', 'i'),
+		('cpusubtype', 'i'),
+		('offset', 'I'),
+		('size', 'I'),
+		('alignment', 'I'),
+	)
+
+class MachOHeader(NamedStruct):
+	endianness = '<'
+	definition = (
+		('magic', 'I'),
+		('cputype', 'i'),
+		('cpusubtype', 'i'),
+		('filetype', 'I'),
+		('numberOfCommands', 'I'),
+		('sizeOfCommands', 'I'),
+		('flags', 'I'),
+	)
+
+def loadMachOFileData(data):
+	header = MachOHeader(data)
+
+	if header.magic != 0xfeedface:
+		return None
+
+	return "commands #: %s" % (header.numberOfCommands)
+
+
 def loadMachOFatFile(filename):
 	# load the fat mach-o file
 
 	inputfile = open(filename, 'r').read()
-	magic, numberOfArchs = struct.unpack_from('>II', inputfile)
-	if magic != 0xcafebabe:
+	header = MachOFatHeader(inputfile)
+	
+	if header.magic != 0xcafebabe:
+		print "wrong magic: %s" % header.magic
 		return None
 
-	for i in xrange(numberOfArchs):
-		cputype, cpusubtype, offset, size, alignment = struct.unpack_from('>iiIII', inputfile, 8 + 20 * i)
-		if cputype == 7: # 7 == intel 32 bit
-			return "Found x86 mach-o binary at offset %s size %s" % (hex(offset), hex(size))
+	for i in xrange(header.numberOfArchs):
+		
+		arch = MachOFatArchsTable(inputfile, 8 + 20 * i)
+
+		if arch.cputype == 7: # 7 == intel 32 bit
+			return loadMachOFileData(inputfile[arch.offset:arch.offset + arch.size])
 
 	return None
 
@@ -59,6 +120,3 @@ class disasmaCommand(sublime_plugin.WindowCommand):
 			view.set_name(item.name()+".disasm")
 			view.run_command('disasmaentry',{"location":item.path()})
 			self.window.focus_view(view)
-
-		
-		 
