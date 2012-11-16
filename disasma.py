@@ -10,12 +10,32 @@ from commands import *
 import pickle
 import gzip
 import subprocess
+import struct
+
+def loadMachOFatFile(filename):
+	# load the fat mach-o file
+
+	inputfile = open(filename, 'r').read()
+	magic, numberOfArchs = struct.unpack_from('>II', inputfile)
+	if magic != 0xcafebabe:
+		return None
+
+	for i in xrange(numberOfArchs):
+		cputype, cpusubtype, offset, size, alignment = struct.unpack_from('>iiIII', inputfile, 8 + 20 * i)
+		if cputype == 7: # 7 == intel 32 bit
+			return "Found x86 mach-o binary at offset %s size %s" % (hex(offset), hex(size))
+
+	return None
+
 
 class disasmaentryCommand(sublime_plugin.TextCommand):  
     def run(self, edit,location=""):  
         #self.view.insert(edit, 0, SideBarSelection([]).getSelectedItems()[0])
         #location = SideBarSelection([]).getSelectedItems()[0].path()
-        outs=getoutput("objdump -s %s"%location)
+        #outs=getoutput("objdump -s %s"%location)
+
+        outs = loadMachOFatFile(location) or "qualche errore"
+
         self.view.set_syntax_file("Packages/Disasma/Hex.tmLanguage")
         self.view.insert(edit, 0, outs)  
 
