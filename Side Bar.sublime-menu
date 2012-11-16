@@ -1,0 +1,5 @@
+[
+	{ "caption": "-" , "id":"side-bar-end-separator"},
+	{ "caption": "Disassembla","id": "disasma","command": "disasma","args": {"paths": []}},
+	{ "caption": "-",  "id": "side-bar-end-separator" }
+]
