@@ -23,6 +23,9 @@ class NamedStruct(object):
 			if name == membername:
 				return self.contents[i]
 
-	def __str__(self):	
+	def __str__(self):
 		contents = ['%s: %s' % (name, self.contents[i]) for i, (name, x) in enumerate(self.definition)]
 		return '%s - %s' % (self.__class__.__name__, ', '.join(contents))
+
+	def size(self):
+		return self.struct.size

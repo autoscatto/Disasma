@@ -1,39 +1,26 @@
 from namedstruct import NamedStruct
 
-class MachOFatHeader(NamedStruct):
-	endianness = '>'
-	definition = (
-		('magic', 'I'),
-		('numberOfArchs', 'I')
-	)
-
-class MachOFatArchsTable(NamedStruct):
-	endianness = '>'
-	definition = (
-		('cputype', 'i'),
-		('cpusubtype', 'i'),
-		('offset', 'I'),
-		('size', 'I'),
-		('alignment', 'I'),
-	)
-
-class MachOHeader(NamedStruct):
-	endianness = '<'
-	definition = (
-		('magic', 'I'),
-		('cputype', 'i'),
-		('cpusubtype', 'i'),
-		('filetype', 'I'),
-		('numberOfCommands', 'I'),
-		('sizeOfCommands', 'I'),
-		('flags', 'I'),
-	)
-
 class MachOCommand(NamedStruct):
 	endianness = '<'
 	definition = (
 		('cmd', 'I'),
 		('cmdsize', 'I')
+	)
+
+class MachOSectionInfo(NamedStruct):
+	endianness = '<'
+	definition = (
+		('sectname', '16s'),
+		('segname', '16s'),
+		('addr', 'I'),
+		('size', 'I'),
+		('offset', 'I'),
+		('align', 'I'),
+		('reloff', 'I'),
+		('nreloc', 'I'),
+		('flags', 'I'),
+		('reserved1', 'I'),
+		('reserved2', 'I'),
 	)
 
 class MachOSegmentCommand(MachOCommand):
@@ -50,6 +37,21 @@ class MachOSegmentCommand(MachOCommand):
 		('nsects', 'I'),
 		('flags', 'I'),
 	)
+
+	def __init__(self, data, offset=0):
+		MachOCommand.__init__(self, data, offset)
+
+		currentOffset = offset + self.size()
+
+		self.sections = []
+		for i in xrange(self.nsects):
+			sec = MachOSectionInfo(data, currentOffset)
+			self.sections.append(MachOSectionInfo(data, currentOffset))
+			currentOffset += sec.size()
+
+	def __str__(self):
+		return '%s - %s' % (MachOCommand.__str__(self), '\n'.join(str(i) for i in self.sections))
+
 
 class MachOSymtabCommand(MachOCommand):
 	definition = (

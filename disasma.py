@@ -9,10 +9,9 @@ class disasmaentryCommand(sublime_plugin.TextCommand):
         #location = SideBarSelection([]).getSelectedItems()[0].path()
         #outs=getoutput("objdump -s %s"%location)
 
-        outs = macho.loadMachOFatFile(location) or "qualche errore"
+        outs = machofile.loadMachOFatFile(location) or "qualche errore"
         self.view.set_syntax_file("Packages/Disasma/Disasma.tmLanguage")
-        self.view.insert(edit, 0, outs )  
-
+        self.view.insert(edit, 0, outs)
 
 class disasmaCommand(sublime_plugin.WindowCommand):
     def run(self, paths = []):
