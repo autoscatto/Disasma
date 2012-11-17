@@ -138,6 +138,23 @@ class MachOThreadStateCommand(MachOCommand):
 		('cmd', 'I'),
 		('cmdsize', 'I'),
 		('flavour', 'I'),
+		('count', 'I'),
+		('eax', 'I'),
+   		('ebx', 'I'),
+   		('ecx', 'I'),
+   		('edx', 'I'),
+   		('edi', 'I'),
+   		('esi', 'I'),
+   		('ebp', 'I'),
+   		('esp', 'I'),
+   		('ss', 'I'),
+   		('eflags', 'I'),
+   		('eip', 'I'),
+   		('cs', 'I'),
+   		('ds', 'I'),
+   		('es', 'I'),
+   		('fs', 'I'),
+   		('gs', 'I'),
 	)
 
 class MachOLoadDylibCommand(MachOCommand):
