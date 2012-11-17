@@ -1,3 +1,3 @@
 from macho import *
 
-print machofile.loadMachOFatFile('ls') or "qualche errore"
+print machofile.loadMachOFatFile('binaries/fat-macho') or "qualche errore"

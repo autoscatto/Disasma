@@ -1,4 +1,4 @@
-from namedstruct import NamedStruct
+from util.namedstruct import NamedStruct
 
 class MachOCommand(NamedStruct):
 	endianness = '<'

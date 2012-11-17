@@ -1,5 +1,5 @@
 from commands import *
-from namedstruct import *
+from util.namedstruct import *
 
 class MachOFatHeader(NamedStruct):
 	endianness = '>'

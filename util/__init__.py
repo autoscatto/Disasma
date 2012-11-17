@@ -1,1 +1,1 @@
-__all__ = ['util']
+__all__ = ['util', 'namedstruct']
