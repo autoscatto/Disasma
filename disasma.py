@@ -14,7 +14,7 @@ import gzip
 import subprocess
 import struct
 
-class NamedStruct:
+class NamedStruct(object):
 	struct     = None
 	endianness = ''
 	definition = ()
@@ -30,6 +30,10 @@ class NamedStruct:
 		for i, (membername, formattype) in enumerate(self.definition):
 			if name == membername:
 				return self.contents[i]
+
+	def __str__(self):
+		contents = ['%s: %s' % (name, self.contents[i]) for i, (name, x) in enumerate(self.definition)]
+		return '%s - %s' % (self.__class__.__name__, ', '.join(contents))
 
 class MachOFatHeader(NamedStruct):
 	endianness = '>'
@@ -60,13 +64,47 @@ class MachOHeader(NamedStruct):
 		('flags', 'I'),
 	)
 
+class MachOCommand(NamedStruct):
+	endianness = '<'
+	definition = (
+		('cmd', 'I'),
+		('cmdsize', 'I')
+	)
+
+	@staticmethod
+	def parseCommand(data, offset):
+		command = MachOCommand(data, offset)
+		return command, offset + command.cmdsize
+
+# struct segment_command
+# {
+# uint32_t cmd;
+# uint32_t cmdsize;
+# char segname[16];
+# uint32_t vmaddr;
+# uint32_t vmsize;
+# uint32_t fileoff;
+# uint32_t filesize;
+# vm_prot_t maxprot;
+# vm_prot_t initprot;
+# uint32_t nsects;
+# uint32_t flags;
+# };
+
 def loadMachOFileData(data):
 	header = MachOHeader(data)
 
 	if header.magic != 0xfeedface:
 		return None
 
-	return "commands #: %s" % (header.numberOfCommands)
+	commands = []
+	currentOffset = 7 * 4
+
+	for i in xrange(header.numberOfCommands):
+		command, currentOffset = MachOCommand.parseCommand(data, currentOffset)
+		commands.append(command)
+
+	return "commands #: %s\n%s" % (header.numberOfCommands, '\n'.join([str(i) for i in commands]))
 
 
 def loadMachOFatFile(filename):
@@ -85,7 +123,6 @@ def loadMachOFatFile(filename):
 			return loadMachOFileData(inputfile[arch.offset:arch.offset + arch.size])
 
 	return None
-
 
 class disasmaentryCommand(sublime_plugin.TextCommand):  
     def run(self, edit,location=""):  
