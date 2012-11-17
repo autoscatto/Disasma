@@ -26,6 +26,12 @@ class NamedStruct(object):
 
 		self.contents = self.struct.unpack_from(data, offset)
 
+		for i, (name, typestring) in enumerate(self.definition):
+			if 's' in typestring:
+				self.contents = list(self.contents)
+				self.contents[i] = self.contents[i].split('\0', 1)[0]
+
+
 	def __getattr__(self, name):
 		for i, (membername, formattype) in enumerate(self.definition):
 			if name == membername:
@@ -71,25 +77,33 @@ class MachOCommand(NamedStruct):
 		('cmdsize', 'I')
 	)
 
-	@staticmethod
-	def parseCommand(data, offset):
-		command = MachOCommand(data, offset)
-		return command, offset + command.cmdsize
+class MachOSegmentCommand(MachOCommand):
+	endianness = '<'
+	definition = (
+		('cmd', 'I'),
+		('cmdsize', 'I'),
+		('segname', '16s'),
+		('vmaddr', 'I'),
+		('vmsize', 'I'),
+		('fileoff', 'I'),
+		('filesize', 'I'),
+		('maxprot', 'I'),
+		('initprot', 'I'),
+		('nsects', 'I'),
+		('flags', 'I'),
+	)
 
-# struct segment_command
-# {
-# uint32_t cmd;
-# uint32_t cmdsize;
-# char segname[16];
-# uint32_t vmaddr;
-# uint32_t vmsize;
-# uint32_t fileoff;
-# uint32_t filesize;
-# vm_prot_t maxprot;
-# vm_prot_t initprot;
-# uint32_t nsects;
-# uint32_t flags;
-# };
+def ParseMachOCommand(data, offset):
+	commands = {
+		1: MachOSegmentCommand,
+	}
+
+	command = MachOCommand(data, offset)
+	commandClass = commands.get(command.cmd, MachOCommand)
+	command = commandClass(data, offset)
+
+	return command, offset + command.cmdsize
+
 
 def loadMachOFileData(data):
 	header = MachOHeader(data)
@@ -101,7 +115,7 @@ def loadMachOFileData(data):
 	currentOffset = 7 * 4
 
 	for i in xrange(header.numberOfCommands):
-		command, currentOffset = MachOCommand.parseCommand(data, currentOffset)
+		command, currentOffset = ParseMachOCommand(data, currentOffset)
 		commands.append(command)
 
 	return "commands #: %s\n%s" % (header.numberOfCommands, '\n'.join([str(i) for i in commands]))
