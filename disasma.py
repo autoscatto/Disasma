@@ -37,7 +37,7 @@ class NamedStruct(object):
 			if name == membername:
 				return self.contents[i]
 
-	def __str__(self):
+	def __str__(self):	
 		contents = ['%s: %s' % (name, self.contents[i]) for i, (name, x) in enumerate(self.definition)]
 		return '%s - %s' % (self.__class__.__name__, ', '.join(contents))
 
@@ -78,7 +78,6 @@ class MachOCommand(NamedStruct):
 	)
 
 class MachOSegmentCommand(MachOCommand):
-	endianness = '<'
 	definition = (
 		('cmd', 'I'),
 		('cmdsize', 'I'),
@@ -93,9 +92,111 @@ class MachOSegmentCommand(MachOCommand):
 		('flags', 'I'),
 	)
 
+class MachOSymtabCommand(MachOCommand):
+	definition = (
+		('cmd', 'I'),
+		('cmdsize', 'I'),
+		('symoff', 'I'),
+		('nsyms', 'I'),
+		('stroff', 'I'),
+		('strsize', 'I'),
+	)
+
+class MachODySymtabCommand(MachOCommand):
+	definition = (
+		('cmd', 'I'),
+		('cmdsize', 'I'),
+		('ilocalsym', 'I'),
+		('nlocalsym', 'I'),
+		('iextdefsym', 'I'),
+		('nextdefsym', 'I'),
+		('iundefsym', 'I'),
+		('nundefsym', 'I'),
+		('tocoff', 'I'),
+		('ntoc', 'I'),
+		('modtaboff', 'I'),
+		('nmodtab', 'I'),
+		('extrefsymoff', 'I'),
+		('nextrefsyms', 'I'),
+		('indirectsymoff', 'I'),
+		('nindirectsyms', 'I'),
+		('extreloff', 'I'),
+		('nextrel', 'I'),
+		('locreloff', 'I'),
+		('nlocrel', 'I'),
+	)
+
+class MachOLoadDylinkerCommand(MachOCommand):
+	definition = (
+		('cmd', 'I'),
+		('cmdsize', 'I'),
+		('offset', 'I'),
+	)
+
+class MachOThreadStateCommand(MachOCommand):
+	definition = (
+		('cmd', 'I'),
+		('cmdsize', 'I'),
+		('flavour', 'I'),
+	)
+
+class MachOLoadDylibCommand(MachOCommand):
+	definition = (
+		('cmd', 'I'),
+		('cmdsize', 'I'),
+		('name', 'I'),
+		('timestamp', 'I'),
+		('current_version', 'I'),
+		('compatibility_version', 'I'),
+	)
+
+class MachOUUIDCommand(MachOCommand):
+	definition = (
+		('cmd', 'I'),
+		('cmdsize', 'I'),
+		#('uuid', '32s'),
+	)
+
+class MachOCodeSignatureCommand(MachOCommand):
+	definition = (
+		('cmd', 'I'),
+		('cmdsize', 'I'),
+		('dataoff', 'I'),
+		('datasize', 'I'),
+	)
+
+class MachOVersionMinOSXCommand(MachOCommand):
+	definition = (
+		('cmd', 'I'),
+		('cmdsize', 'I'),
+	)	
+
+class MachOFunctionStartsCommand(MachOCommand):
+	definition = (
+		('cmd', 'I'),
+		('cmdsize', 'I'),
+	)	
+
+class MachODyldInfoOnlyCommand(MachOCommand):
+	definition = (
+		('cmd', 'I'),
+		('cmdsize', 'I'),
+	)	
+
 def ParseMachOCommand(data, offset):
 	commands = {
-		1: MachOSegmentCommand,
+		0x01: MachOSegmentCommand,
+		0x02: MachOSymtabCommand,
+		0x05: MachOThreadStateCommand,
+		0x0b: MachODySymtabCommand,
+		0x0c: MachOLoadDylibCommand,
+		0x0e: MachOLoadDylinkerCommand,
+		0x1b: MachOUUIDCommand,
+		0x1d: MachOCodeSignatureCommand,
+		0x24: MachOVersionMinOSXCommand,
+		0x26: MachOFunctionStartsCommand,
+
+		0x80000022: MachODyldInfoOnlyCommand,
 	}
 
 	command = MachOCommand(data, offset)
