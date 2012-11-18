@@ -1,5 +1,6 @@
 from commands import *
 from util.namedstruct import *
+from util.util import *
 from pymsasid import *
 
 class MachOFatHeader(NamedStruct):
@@ -31,6 +32,16 @@ class MachOHeader(NamedStruct):
 		('flags', 'I'),
 	)
 
+class NListEntry(NamedStruct):
+	endianness = '<'
+	definition = (
+		('n_strx', 'i'),
+		('n_type', 'B'),
+		('n_sect', 'B'),
+		('n_desc', 'h'),
+		('n_value', 'I'),
+	)
+
 class MachOFile(object):
 	def __init__(self, data):
 		self.data     = data
@@ -45,6 +56,18 @@ class MachOFile(object):
 
 			if isinstance(command, MachOSegmentCommand):
 				self.sections = self.sections + command.sections
+
+			if isinstance(command, MachOSymtabCommand):
+				print command
+				symbOffset = command.symoff
+				for i in xrange(command.nsyms):
+					e = NListEntry(self.data, symbOffset)
+					print e
+					print getZeroTerminatedString(self.data, command.stroff + e.n_strx)
+					symbOffset += e.sizeOfStruct()
+
+			if isinstance(command, MachODySymtabCommand):
+				print
 
 	def __str__(self):
 		return 'Number of commands: %s\n%s\nSections:\n%s' % (self.header.numberOfCommands, '\n'.join([str(i) for i in self.commands]), '\n'.join([str(i) for i in self.sections]))
