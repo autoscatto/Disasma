@@ -1,4 +1,5 @@
 from util.namedstruct import *
+from pymsasid import *
 
 class ElfHeader(NamedStruct):
 	endianness = '<'
@@ -18,6 +19,29 @@ class ElfHeader(NamedStruct):
 		('e_shnum', 'H'),
 		('e_shstrndx', 'H')
 	)
+	'''
+	e_machine values
+
+	enum {
+	  EM_NONE = 0,      // No machine
+	  EM_M32 = 1,       // AT&T WE 32100
+	  EM_SPARC = 2,     // SPARC
+	  EM_386 = 3,       // Intel 386
+	  EM_68K = 4,       // Motorola 68000
+	  EM_88K = 5,       // Motorola 88000
+	  EM_486 = 6,       // Intel 486 (deprecated)
+	  EM_860 = 7,       // Intel 80860
+	  EM_MIPS = 8,      // MIPS R3000
+	  EM_PPC = 20,      // PowerPC
+	  EM_PPC64 = 21,    // PowerPC64
+	  EM_ARM = 40,      // ARM
+	  EM_ALPHA = 41,    // DEC Alpha
+	  EM_SPARCV9 = 43,  // SPARC V9
+	  EM_X86_64 = 62,   // AMD64
+	  EM_MBLAZE = 47787 // Xilinx MicroBlaze
+	}
+    '''
+
 
 class ElfProgramHeader(NamedStruct):
 	endianness = '<'
@@ -32,7 +56,7 @@ class ElfProgramHeader(NamedStruct):
 		('p_align', 'I')
 	)
 
-class ElfSectionHeader(NamedStruct):
+class ElfSection(NamedStruct):
 	endianness = '<'
 	definition = (
 		('sh_name', 'I'),
@@ -47,19 +71,24 @@ class ElfSectionHeader(NamedStruct):
 		('sh_entsize', 'I')
 	)
 
-	def __init__(self, data):
-		NamedStruct.__init__(self, data)
+	def __init__(self, data, offset):
+		NamedStruct.__init__(self, data, offset)
+		self.data = data[self.sh_offset:self.sh_offset+self.sh_size]
 		self.string_section = None
+
+	def getName(self):
+		if self.string_section != None:
+			return self.string_section.getName(self.sh_name)
 
 	def __str__(self):	
 		ret = NamedStruct.__str__(self)
 		ret += "\nMy name is also "
-		strdata = self.string_section.getData()
-		ret += strdata[self.sh_name:strdata.find('\0', self.sh_name)]
+		ret += self.string_section.getName(self.sh_name)
 		return ret
 
-	def getData(self):
-		return self.data
+class ElfSHStringSection(ElfSection):
+	def getName(self, sh_name):
+		return self.data[sh_name:self.data.find('\0', sh_name)]
 
 class ElfSymbolTableEntry(NamedStruct):
 	endianness = '<'
@@ -97,28 +126,57 @@ class ElfFile(object):
 		phentsize 	= self.header.e_phentsize
 		phnum 		= self.header.e_phnum
 
-		print self.header
 		for i in xrange(phnum):
 			phentry = ElfProgramHeader(self.data[phoff+i*phentsize:])
-			print phentry
 
 		shoff 		= self.header.e_shoff
 		shentsize 	= self.header.e_shentsize
 		shnum 		= self.header.e_shnum
 
 		shstrndx 	= self.header.e_shstrndx
-		strtable	= ElfSectionHeader(self.data[shoff+(shstrndx)*shentsize:])
-		strtable.string_section = strtable
-		strtable.data = data[strtable.sh_offset:strtable.sh_offset+strtable.sh_size]
+		strtable	= ElfSHStringSection(
+			self.data,
+			shoff+(shstrndx)*shentsize
+		)
 
+		self.sections = {}
+		self.vmem = {}
 		for i in xrange(shnum):
-			shentry = ElfSectionHeader(self.data[shoff+i*shentsize:])
-			shentry.data = data[shentry.sh_offset:shentry.sh_offset+shentry.sh_size]
+			shentry = ElfSection(self.data, shoff+i*shentsize)
 			shentry.string_section = strtable
-			print shentry
+			self.sections[shentry.getName()] = shentry
+			# Saving only mapped segments
+			if shentry.sh_addr != 0:
+				self.vmem[shentry.sh_addr] = shentry
+
+		for key in sorted(self.vmem.iterkeys()):
+			print '0x%08x' % (key), ': ', self.vmem[key].getName(), \
+			      ' size: ', self.vmem[key].sh_size	
 
 	def disassa(self):
-		return ''
+		out = []
+		prog = pymsasid.Pymsasid(hook   = pymsasid.BufferHook,
+	                		     source = self.data,
+            		             mode   = 32)
+	    # x86
+		if self.header.e_machine == 3:
+			textSect = self.sections['.text']
+			sectionTitle = 'Disassembly of section %s' % (textSect.getName())
+			out.append(sectionTitle)
+			out.append('-' * len(sectionTitle))
+			out.append('')
+
+			currentOffset = textSect.sh_offset
+			prog.input.base_address = textSect.sh_addr
+
+			while currentOffset < textSect.sh_offset + textSect.sh_size:
+				instruction = prog.disassemble(currentOffset)
+				out.append('[%08x] %s' % (currentOffset+textSect.sh_addr, str(instruction)))
+				currentOffset += instruction.size
+				print currentOffset
+			out.append('\n\n')
+
+		return '\n'.join(out)
 
 	@staticmethod
 	def canLoad(data):

@@ -1,13 +1,7 @@
 import sublime, sublime_plugin
 from sidebar.SideBarItem import SideBarItem
 from sidebar.SideBarSelection import SideBarSelection
-<<<<<<< HEAD
-
 from util.loader import loadFile
-=======
-from macho import *
-from elf import *
->>>>>>> a210c42a24afc62d670f18978ed48bf59f765df2
 
 class disasmaentryCommand(sublime_plugin.TextCommand):  
     def run(self, edit,location=""):  
@@ -15,7 +9,9 @@ class disasmaentryCommand(sublime_plugin.TextCommand):
         #location = SideBarSelection([]).getSelectedItems()[0].path()
         #outs=getoutput("objdump -s %s"%location)
 
-        outs = loadFile(location) or "qualche errore"
+        loadfile = loadFile(location) or "errore nel caricamento"
+        dir(loadfile)
+        outs = loadfile.disassa() or "errore nella disassa"
         self.view.set_syntax_file("Packages/Disasma/Disasma.tmLanguage")
         self.view.insert(edit, 0, outs)
 
