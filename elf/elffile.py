@@ -118,6 +118,7 @@ class ElfRelocationWithAddend(NamedStruct):
 
 class ElfFile(object):
     def __init__(self, data):
+        print len(data)
         self.data     = data
         self.header   = ElfHeader(data)
         self.commands = []
@@ -166,6 +167,7 @@ class ElfFile(object):
         prog = pymsasid.Pymsasid(hook   = pymsasid.BufferHook,
                                  source = self.data,
                                  mode   = 32)
+
         # x86
         if self.header.e_machine == 3:
             textSect = self.sections['.text']
@@ -179,7 +181,8 @@ class ElfFile(object):
 
             while currentOffset < textSect.sh_offset + textSect.sh_size:
                 instruction = prog.disassemble(currentOffset)
-                out.append('[%08x] %s' % (currentOffset+textSect.sh_addr, str(instruction)))
+                out.append('[%08x] %s' \
+                    % (currentOffset+textSect.sh_addr, str(instruction)))
                 currentOffset += instruction.size
             out.append('\n\n')
 

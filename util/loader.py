@@ -4,7 +4,7 @@ def loadFile(location):
     from elf import ElfFile
 
     ret  = None
-    data = open(location, 'r').read()
+    data = open(location, 'rb').read()
 
     filetypes = [
         MachOFile,
