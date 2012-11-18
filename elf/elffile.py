@@ -151,7 +151,15 @@ class ElfFile(object):
 
         for key in sorted(self.vmem.iterkeys()):
             print '0x%08x' % (key), ': ', self.vmem[key].getName(), \
-                  ' size: ', self.vmem[key].sh_size 
+                  ' size: ', self.vmem[key].sh_size
+
+    def accessVMAddress(self, address, bytes=4):
+        for vmaddress in self.vmem.iterkeys():
+            if address >= vmaddress \
+               and address <= vmaddress+self.vmem[vmaddress].sh_size:
+               print "Section: ", self.vmem[vmaddress].getName()
+               return self.vmem[vmaddress] \
+                          .data[address-vmaddress:address-vmaddress+bytes]
 
     def disassa(self):
         out = []
