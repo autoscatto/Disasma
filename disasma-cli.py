@@ -1,3 +1,9 @@
-from macho import *
+from util.loader import loadFile
+import sys
 
-print machofile.loadMachOFatFile('binaries/fat-macho') or "qualche errore"
+try:
+	filename = sys.argv[1]
+except:
+	filename = 'binaries/fat-macho'
+
+print loadFile(filename).disassa()

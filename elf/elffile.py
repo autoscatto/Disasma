@@ -96,6 +96,14 @@ class ElfFile(object):
 			shentry = ElfSymbolTableEntry(self.data[shoff+i*shentsize:])
 			print shentry
 
+	def disassa(self):
+		return ''
+
+	@staticmethod
+	def canLoad(data):
+		magic = struct.unpack_from('>4s', data)[0]
+		return magic == '\x7fELF'
+
 def loadElfFile(filename):
 	inputfile = open(filename, 'r').read()
 	header = ElfHeader(inputfile)

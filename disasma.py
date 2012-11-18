@@ -1,7 +1,8 @@
 import sublime, sublime_plugin
 from sidebar.SideBarItem import SideBarItem
 from sidebar.SideBarSelection import SideBarSelection
-from macho import *
+
+from util.loader import loadFile
 
 class disasmaentryCommand(sublime_plugin.TextCommand):  
     def run(self, edit,location=""):  
@@ -9,7 +10,7 @@ class disasmaentryCommand(sublime_plugin.TextCommand):
         #location = SideBarSelection([]).getSelectedItems()[0].path()
         #outs=getoutput("objdump -s %s"%location)
 
-        outs = machofile.loadMachOFatFile(location) or "qualche errore"
+        outs = loadFile(location) or "qualche errore"
         self.view.set_syntax_file("Packages/Disasma/Disasma.tmLanguage")
         self.view.insert(edit, 0, outs)
 

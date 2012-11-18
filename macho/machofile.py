@@ -75,27 +75,32 @@ class MachOFile(object):
 
 		return '\n'.join(out)
 
-def loadMachOFileData(data):
-	header = MachOHeader(data)
+	@staticmethod
+	def canLoad(data):
+		magic = struct.unpack_from('<I', data)[0]
+		return magic == 0xfeedface
 
-	if header.magic != 0xfeedface:
-		return None
+class MachOFatFile(MachOFile):
+	def __init__(self, data):
+		header = MachOFatHeader(data)
 
-	filo = MachOFile(data)
-	return filo.disassa()
+		for i in xrange(header.numberOfArchs):
+			arch = MachOFatArchsTable(data, 8 + 20 * i)
 
+			if arch.cputype == 7: # 7 == intel 32 bit
+				MachOFile.__init__(self, data[arch.offset:arch.offset + arch.datasize])
 
-def loadMachOFatFile(filename):
-	inputfile = open(filename, 'r').read()
-	header = MachOFatHeader(inputfile)
+	@staticmethod
+	def canLoad(data):
+		header = MachOFatHeader(data)
 	
-	if header.magic != 0xcafebabe:
-		return None
+		if header.magic != 0xcafebabe:
+			return False
 
-	for i in xrange(header.numberOfArchs):
-		arch = MachOFatArchsTable(inputfile, 8 + 20 * i)
+		for i in xrange(header.numberOfArchs):
+			arch = MachOFatArchsTable(data, 8 + 20 * i)
 
-		if arch.cputype == 7: # 7 == intel 32 bit
-			return loadMachOFileData(inputfile[arch.offset:arch.offset + arch.datasize])
+			if arch.cputype == 7: # 7 == intel 32 bit
+				return True
 
-	return None
+		return False
