@@ -1,5 +1,6 @@
 from commands import *
 from util.namedstruct import *
+from pymsasid import *
 
 class MachOFatHeader(NamedStruct):
 	endianness = '>'
@@ -35,14 +36,44 @@ class MachOFile(object):
 		self.data     = data
 		self.header   = MachOHeader(data)
 		self.commands = []
+		self.sections = []
 
 		currentOffset = 7 * 4
 		for i in xrange(self.header.numberOfCommands):
 			command, currentOffset = ParseMachOCommand(data, currentOffset)
-			self.commands.append(command)	
+			self.commands.append(command)
+
+			if isinstance(command, MachOSegmentCommand):
+				self.sections = self.sections + command.sections
 
 	def __str__(self):
-		return 'Number of commands: %s\n%s' % (self.header.numberOfCommands, '\n'.join([str(i) for i in self.commands]))
+		return 'Number of commands: %s\n%s\nSections:\n%s' % (self.header.numberOfCommands, '\n'.join([str(i) for i in self.commands]), '\n'.join([str(i) for i in self.sections]))
+
+
+	def disassa(self):
+		out  = []
+		prog = pymsasid.Pymsasid(hook   = pymsasid.BufferHook,
+			                     source = self.data,
+		                         mode   = 32)
+
+		for section in self.sections:
+			if section.isPureInstructions():
+				sectionTitle = 'Disassembly of section %s.%s' % (section.segname, section.sectname)
+				out.append(sectionTitle)
+				out.append('-' * len(sectionTitle))
+				out.append('')
+
+				currentOffset = section.offset
+				prog.input.base_address = section.addr
+
+				while currentOffset < section.addr + section.size:
+					instruction = prog.disassemble(currentOffset)
+					out.append('[%08x] %s' % (currentOffset, str(instruction)))
+					currentOffset += instruction.size
+
+				out.append('\n\n')
+
+		return '\n'.join(out)
 
 def loadMachOFileData(data):
 	header = MachOHeader(data)
@@ -51,7 +82,7 @@ def loadMachOFileData(data):
 		return None
 
 	filo = MachOFile(data)
-	return str(filo)
+	return filo.disassa()
 
 
 def loadMachOFatFile(filename):

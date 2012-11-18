@@ -27,5 +27,5 @@ class NamedStruct(object):
 		contents = ['%s: %s' % (name, self.contents[i]) for i, (name, x) in enumerate(self.definition)]
 		return '%s - %s' % (self.__class__.__name__, ', '.join(contents))
 
-	def size(self):
+	def sizeOfStruct(self):
 		return self.struct.size
