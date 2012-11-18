@@ -47,6 +47,20 @@ class ElfSectionHeader(NamedStruct):
 		('sh_entsize', 'I')
 	)
 
+	def __init__(self, data):
+		NamedStruct.__init__(self, data)
+		self.string_section = None
+
+	def __str__(self):	
+		ret = NamedStruct.__str__(self)
+		ret += "\nMy name is also "
+		strdata = self.string_section.getData()
+		ret += strdata[self.sh_name:strdata.find('\0', self.sh_name)]
+		return ret
+
+	def getData(self):
+		return self.data
+
 class ElfSymbolTableEntry(NamedStruct):
 	endianness = '<'
 	definition = (
@@ -92,14 +106,19 @@ class ElfFile(object):
 		shentsize 	= self.header.e_shentsize
 		shnum 		= self.header.e_shnum
 
+		shstrndx 	= self.header.e_shstrndx
+		strtable	= ElfSectionHeader(self.data[shoff+(shstrndx)*shentsize:])
+		strtable.string_section = strtable
+		strtable.data = data[strtable.sh_offset:strtable.sh_offset+strtable.sh_size]
+
 		for i in xrange(shnum):
-			shentry = ElfSymbolTableEntry(self.data[shoff+i*shentsize:])
+			shentry = ElfSectionHeader(self.data[shoff+i*shentsize:])
+			shentry.data = data[shentry.sh_offset:shentry.sh_offset+shentry.sh_size]
+			shentry.string_section = strtable
 			print shentry
 
 def loadElfFile(filename):
 	inputfile = open(filename, 'r').read()
 	header = ElfHeader(inputfile)
 
-	print "ASDFASF"
 	ElfFile(inputfile)
-	print header.e_ident
