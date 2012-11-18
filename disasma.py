@@ -1,8 +1,13 @@
 import sublime, sublime_plugin
 from sidebar.SideBarItem import SideBarItem
 from sidebar.SideBarSelection import SideBarSelection
+<<<<<<< HEAD
 
 from util.loader import loadFile
+=======
+from macho import *
+from elf import *
+>>>>>>> a210c42a24afc62d670f18978ed48bf59f765df2
 
 class disasmaentryCommand(sublime_plugin.TextCommand):  
     def run(self, edit,location=""):  
