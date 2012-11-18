@@ -1,4 +1,4 @@
-from util.loader import loadFile
+from util.loader import *
 import sys
 
 try:
@@ -6,4 +6,4 @@ try:
 except:
 	filename = 'binaries/fat-macho'
 
-print loadFile(filename).disassa()
+print SPUTA_FUORI_IL_ROSPO(filename)

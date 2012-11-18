@@ -2,6 +2,7 @@ from commands import *
 from util.namedstruct import *
 from util.util import *
 from pymsasid import *
+from process.process import *
 
 class MachOFatHeader(NamedStruct):
 	endianness = '>'
@@ -55,48 +56,29 @@ class MachOFile(object):
 			self.commands.append(command)
 
 			if isinstance(command, MachOSegmentCommand):
-				self.sections = self.sections + command.sections
+				for section in command.sections:
+					name = '%s.%s' % (section.segname, section.sectname)
+					secdata = self.data[section.offset:section.offset + section.size]
+					sectionClass = CodeSection if section.isPureInstructions() else Section
+					self.sections.append(sectionClass(name,
+						                              section.addr,
+						                              section.size,
+						                              secdata))
 
 			if isinstance(command, MachOSymtabCommand):
-				print command
+				#print command
 				symbOffset = command.symoff
 				for i in xrange(command.nsyms):
 					e = NListEntry(self.data, symbOffset)
-					print e
-					print getZeroTerminatedString(self.data, command.stroff + e.n_strx)
+					#print e
+					#print getZeroTerminatedString(self.data, command.stroff + e.n_strx)
 					symbOffset += e.sizeOfStruct()
 
 			if isinstance(command, MachODySymtabCommand):
-				print
+				continue #print
 
 	def __str__(self):
 		return 'Number of commands: %s\n%s\nSections:\n%s' % (self.header.numberOfCommands, '\n'.join([str(i) for i in self.commands]), '\n'.join([str(i) for i in self.sections]))
-
-
-	def disassa(self):
-		out  = []
-		prog = pymsasid.Pymsasid(hook   = pymsasid.BufferHook,
-			                     source = self.data,
-		                         mode   = 32)
-
-		for section in self.sections:
-			if section.isPureInstructions():
-				sectionTitle = 'Disassembly of section %s.%s' % (section.segname, section.sectname)
-				out.append(sectionTitle)
-				out.append('-' * len(sectionTitle))
-				out.append('')
-
-				currentOffset = section.offset
-				prog.input.base_address = section.addr
-
-				while currentOffset < section.addr + section.size:
-					instruction = prog.disassemble(currentOffset)
-					out.append('[%08x] %s' % (currentOffset, str(instruction)))
-					currentOffset += instruction.size
-
-				out.append('\n\n')
-
-		return '\n'.join(out)
 
 	@staticmethod
 	def canLoad(data):
