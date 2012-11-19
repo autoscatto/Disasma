@@ -1,8 +1,9 @@
 # -*- coding: Latin-1 -*-
 from util.namedstruct import *
 import struct
-from pefile import pefile
+# from pefile import pefile
 from pymsasid import *
+
 class ExeFormatError(Exception):
     def __init__(self, value):
         self.value = value
@@ -16,6 +17,10 @@ LX_SIGNATURE    = 0x584C
 NT_SIGNATURE    = 0x00004550
 OPTIONAL_HEADER_MAGIC_PE        = 0x10b
 OPTIONAL_HEADER_MAGIC_PE_PLUS   = 0x20b
+
+SIZE_OF_NT_SIGNATURE = 4
+IMAGE_SECTION_HEADER_SIZE = 40
+IMAGE_FILE_HEADER_SIZE = 20
 
 class ExeHeader(NamedStruct):
     endianness = '@'
@@ -39,7 +44,6 @@ class ExeHeader(NamedStruct):
         ('e_oeminfo',   'H'),       # OEM information; oemid specific
         ('e_res2','20s'),           # Reserved words
         ('e_lfanew',   'I')         # File address of new exe header (PE)
-
     )
 
 class ExePeSign(NamedStruct):
@@ -143,6 +147,11 @@ class ExeSectionHeader(NamedStruct):
         ('Characteristics','I'),
         )
 
+    def __init__(self, data, offset):
+        NamedStruct.__init__(self, data, offset)
+        self.data = data[self.PointerToRawData :
+                         self.PointerToRawData + self.SizeOfRawData]
+
 
 class ExeFile(object):
 
@@ -173,17 +182,45 @@ class ExeFile(object):
 
 
     def __init__(self, data):
-        self.data     = data
-        self.pe       = pefile.PE(data=data)
-        self.header   = ExeHeader(data)
-        self.commands = []
+        self.data      = data
+        #self.pe       = pefile.PE(data=data)
+        self.oldheader = ExeHeader(data)
+        self.commands  = []
         
         # Controllo se e' PE
-        self.ispe=self.checkIfPE()
+        # self.ispe = self.checkIfPE()
 
         # File Header
-        self.fileheader=ExeFileHeader(self.data[self.nt_headers_offset+4:self.nt_headers_offset+4+32])
-        
+        self.newheader = ExeFileHeader(self.data,
+                            self.oldheader.e_lfanew + SIZE_OF_NT_SIGNATURE)
+        # Need to take the size of a ExeFileHeader, which is 20
+        self.optheader = ExeOptionalHeader(self.data, self.oldheader.e_lfanew \
+                            + SIZE_OF_NT_SIGNATURE + IMAGE_FILE_HEADER_SIZE)
+        print self.oldheader
+        print self.newheader
+        print self.optheader
+
+        '''
+        entryPoint  = self.optheader.AddressOfEntryPoint
+        relCodeBase = self.optheader.BaseOfCode
+        codeSize    = self.optheader.SizeOfCode
+        self.code   = data[entryPoint+relCodeBase+IMAGE_SECTION_HEADER_SIZE:
+                           entryPoint+relCodeBase+codeSize]
+        '''
+
+        self.sections = {}
+        # offset = self.optheader.AddressOfEntryPoint
+        offset = self.oldheader.e_lfanew + SIZE_OF_NT_SIGNATURE \
+                 + IMAGE_FILE_HEADER_SIZE + self.newheader.SizeOfOptionalHeader
+        print offset
+        for i in range(0, self.newheader.NumberOfSections):
+            section = ExeSectionHeader(self.data, offset)
+            offset += section.sizeOfStruct()
+            # offset += section.SizeOfRawData
+            self.sections[section.Name] = section
+            print section
+
+        '''
         if not self.fileheader:
             raise ExeFormatError('File Header missing')
 
@@ -230,17 +267,32 @@ class ExeFile(object):
             # Saving only mapped segments
             if s.VirtualAddress != 0:
                 self.vmem[s.VirtualAddress] = s
+        '''
 
 
     def disassa(self):
         out = []
-        prog = pymsasid.Pymsasid(hook=pymsasid.BufferHook,source = self.data,mode= 32)
+        #prog = pymsasid.Pymsasid(hook=pymsasid.BufferHook,source = self.data,mode= 32)
+        prog = pymsasid.Pymsasid(hook   = pymsasid.BufferHook,
+                                 source = self.data,
+                                 mode   = 32)
+
         textSect = self.sections['.text']
         sectionTitle = 'Disassembly of section %s' % (textSect.Name.replace('\x00',''))
         out.append(sectionTitle)
         out.append('-' * len(sectionTitle))
         out.append('')
 
+        currentOffset = textSect.PointerToRawData
+        prog.input.base_address = textSect.VirtualAddress
+
+        while currentOffset < textSect.PointerToRawData + textSect.SizeOfRawData:
+            instruction = prog.disassemble(currentOffset)
+            out.append('[%08x] %s'% (currentOffset+textSect.VirtualAddress, str(instruction)))
+            currentOffset += instruction.size
+        out.append('\n\n')
+
+        '''
         currentOffset = textSect.get_file_offset()
         prog.input.base_address = textSect.VirtualAddress
 
@@ -249,7 +301,7 @@ class ExeFile(object):
             out.append('[%08x] %s'% (currentOffset+textSect.VirtualAddress, str(instruction)))
             currentOffset += instruction.size
         out.append('\n\n')
-
+        '''
         return '\n'.join(out)
 
     @staticmethod

@@ -123,12 +123,15 @@ class ElfFile(object):
         self.header   = ElfHeader(data)
         self.commands = []
 
+        '''
+        TODO: program_header entries
         phoff       = self.header.e_phoff
         phentsize   = self.header.e_phentsize
         phnum       = self.header.e_phnum
 
         for i in xrange(phnum):
             phentry = ElfProgramHeader(self.data[phoff+i*phentsize:])
+        '''
 
         shoff       = self.header.e_shoff
         shentsize   = self.header.e_shentsize

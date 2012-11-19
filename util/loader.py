@@ -2,6 +2,7 @@ def loadFile(location):
     from macho import MachOFile
     from macho import MachOFatFile
     from elf import ElfFile
+    from exe import ExeFile
 
     ret  = None
     data = open(location, 'rb').read()
@@ -9,7 +10,8 @@ def loadFile(location):
     filetypes = [
         MachOFile,
         MachOFatFile,
-        ElfFile
+        ElfFile,
+        ExeFile
     ]
 
     for filetype in filetypes:
