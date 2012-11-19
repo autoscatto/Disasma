@@ -34,17 +34,34 @@ class Section(object):
 
 			if (i + 1) % 16 == 0:
 				linestring = ''.join(line)
-				offsetstring = ' %08x  |  ' % (i + self.start)
+				offsetstring = ' %08x  |  ' % ((i-15) + self.start)
 				ascii = ''.join(asciistring)
 				out.append(offsetstring + linestring + '  |  ' + ascii)
 				line = []
 				asciistring = []
 
+		i += 1
+		while i % 16 != 0:
+			line.append('   ')
+			asciistring.append(' ')
+
+			if (i + 1) % 4 == 0:
+				line.append('  ')
+
+			if (i + 1) % 16 == 0:
+				linestring = ''.join(line)
+				offsetstring = ' %08x  |  ' % ((i-15) + self.start)
+				ascii = ''.join(asciistring)
+				out.append(offsetstring + linestring + '  |  ' + ascii)
+				line = []
+				asciistring = []
+			i += 1
+			
 		return '\n'.join(out) + '\n\n'
 
 class CodeSection(Section):
 	def __str__(self):
-		title = 'Section ' + self.name+ ':'
+		title = 'Section ' + self.name + ':'
 		#out = [title, '-' * len(title), '']
 		out = [title]
 		prog = pymsasid.Pymsasid(hook   = pymsasid.BufferHook,
