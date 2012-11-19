@@ -1,5 +1,6 @@
 from util.namedstruct import *
 from pymsasid import *
+from process.process import *
 
 class ElfHeader(NamedStruct):
     endianness = '<'
@@ -118,7 +119,7 @@ class ElfRelocationWithAddend(NamedStruct):
 
 class ElfFile(object):
     def __init__(self, data):
-        print len(data)
+        #print len(data)
         self.data     = data
         self.header   = ElfHeader(data)
         self.commands = []
@@ -143,19 +144,27 @@ class ElfFile(object):
             shoff+(shstrndx)*shentsize
         )
 
-        self.sections = {}
+        self.elfSections = {}
+        self.sections = []
         self.vmem = {}
         for i in xrange(shnum):
             shentry = ElfSection(self.data, shoff+i*shentsize)
             shentry.string_section = strtable
-            self.sections[shentry.getName()] = shentry
+            self.elfSections[shentry.getName()] = shentry
             # Saving only mapped segments
             if shentry.sh_addr != 0:
                 self.vmem[shentry.sh_addr] = shentry
 
-        for key in sorted(self.vmem.iterkeys()):
-            print '0x%08x' % (key), ': ', self.vmem[key].getName(), \
-                  ' size: ', self.vmem[key].sh_size
+            secdata = self.data[shentry.sh_offset:shentry.sh_offset+shentry.sh_size]
+            sectionClass = CodeSection if shentry.getName() == '.text' else Section
+            self.sections.append(sectionClass(shentry.getName(),
+                                              shentry.sh_addr,
+                                              shentry.sh_size,
+                                              secdata))
+
+        #for key in sorted(self.vmem.iterkeys()):
+        #    print '0x%08x' % (key), ': ', self.vmem[key].getName(), \
+        #          ' size: ', self.vmem[key].sh_size
 
     def accessVMAddress(self, address, bytes=4):
         for vmaddress in self.vmem.iterkeys():
@@ -173,7 +182,7 @@ class ElfFile(object):
 
         # x86
         if self.header.e_machine == 3:
-            textSect = self.sections['.text']
+            textSect = self.elfSections['.text']
             sectionTitle = 'Disassembly of section %s' % (textSect.getName())
             out.append(sectionTitle)
             out.append('-' * len(sectionTitle))
