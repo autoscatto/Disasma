@@ -3,6 +3,7 @@ from util.namedstruct import *
 import struct
 # from pefile import pefile
 from pymsasid import *
+from process.process import *
 
 class ExeFormatError(Exception):
     def __init__(self, value):
@@ -196,9 +197,9 @@ class ExeFile(object):
         # Need to take the size of a ExeFileHeader, which is 20
         self.optheader = ExeOptionalHeader(self.data, self.oldheader.e_lfanew \
                             + SIZE_OF_NT_SIGNATURE + IMAGE_FILE_HEADER_SIZE)
-        print self.oldheader
-        print self.newheader
-        print self.optheader
+        #print self.oldheader
+        #print self.newheader
+        #print self.optheader
 
         '''
         entryPoint  = self.optheader.AddressOfEntryPoint
@@ -208,17 +209,26 @@ class ExeFile(object):
                            entryPoint+relCodeBase+codeSize]
         '''
 
-        self.sections = {}
+        self.peSections = {}
+        self.sections = []
+
         # offset = self.optheader.AddressOfEntryPoint
         offset = self.oldheader.e_lfanew + SIZE_OF_NT_SIGNATURE \
                  + IMAGE_FILE_HEADER_SIZE + self.newheader.SizeOfOptionalHeader
-        print offset
+        #print offset
         for i in range(0, self.newheader.NumberOfSections):
             section = ExeSectionHeader(self.data, offset)
             offset += section.sizeOfStruct()
-            # offset += section.SizeOfRawData
-            self.sections[section.Name] = section
-            print section
+            self.peSections[section.Name] = section
+
+            secdata = data[section.PointerToRawData : section.PointerToRawData + section.SizeOfRawData]
+            sectionClass = CodeSection if section.Name == '.text' else Section
+            self.sections.append(sectionClass(section.Name,
+                                              section.VirtualAddress,
+                                              section.SizeOfRawData,
+                                              secdata))
+
+            #print section
 
         '''
         if not self.fileheader:
@@ -277,7 +287,7 @@ class ExeFile(object):
                                  source = self.data,
                                  mode   = 32)
 
-        textSect = self.sections['.text']
+        textSect = self.peSections['.text']
         sectionTitle = 'Disassembly of section %s' % (textSect.Name.replace('\x00',''))
         out.append(sectionTitle)
         out.append('-' * len(sectionTitle))
