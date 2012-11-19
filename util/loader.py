@@ -31,4 +31,4 @@ def SPUTA_FUORI_IL_ROSPO(filename):
     for section in theFile.sections:
         process.addSection(section)
 
-    print process
+    return process.__str__()

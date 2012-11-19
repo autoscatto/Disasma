@@ -20,9 +20,9 @@ class Section(object):
 		def printablechar(x):
 			return x if x > 31 and x < 127 else ord('.')
 
-		title = 'Section ' + self.name
-		out = [title, '-' * len(title), '']
-
+		title = 'Section ' + self.name + ':'
+		#out = [title, '-' * len(title), '']
+		out = [title]
 		line = []
 		asciistring = []
 		for i, char in enumerate(self.data):
@@ -34,7 +34,7 @@ class Section(object):
 
 			if (i + 1) % 16 == 0:
 				linestring = ''.join(line)
-				offsetstring = '%08x  |  ' % (i + self.start)
+				offsetstring = ' %08x  |  ' % (i + self.start)
 				ascii = ''.join(asciistring)
 				out.append(offsetstring + linestring + '  |  ' + ascii)
 				line = []
@@ -44,9 +44,9 @@ class Section(object):
 
 class CodeSection(Section):
 	def __str__(self):
-		title = 'Section ' + self.name
-		out = [title, '-' * len(title), '']
-
+		title = 'Section ' + self.name+ ':'
+		#out = [title, '-' * len(title), '']
+		out = [title]
 		prog = pymsasid.Pymsasid(hook   = pymsasid.BufferHook,
 			                     source = self.data,
 		                         mode   = 32)
@@ -56,7 +56,7 @@ class CodeSection(Section):
 
 		while currentOffset < self.size:
 			instruction = prog.disassemble(currentOffset)
-			out.append('[%08x] %s' % (currentOffset + self.start, str(instruction)))
+			out.append(' [%08x] %-8s\t%s' % (currentOffset + self.start, str(instruction.operator), str(instruction.operand)[1:-1]))
 			currentOffset += instruction.size
 
 		return '\n'.join(out) + '\n\n'

@@ -12,7 +12,7 @@
 	<array>
 		<dict>
 			<key>begin</key>
-			<string>Contents</string>
+			<string>Section</string>
 			<key>comment</key>
 			<string>titolo di sezione</string>
 			<key>end</key>
@@ -21,16 +21,29 @@
 			<string>entity.name.function.disasm</string>
 		</dict>
 		<dict>
+			<key>comment</key>
+			<string>registri</string>
 			<key>match</key>
-			<string>file format</string>
+			<string>(eax|ax|ah|al|ebx|bx|bh|bl|ecx|cx|ch|cl|edx|dx|dh|dl|esp|sp|ebp|bp|esi|si|edi|di|cs|ds|ss|es|fs|gs|rax|rbx|rcx|rdx|rsi|rdi|rbp|rsp|rflags|rip)</string>
 			<key>name</key>
-			<string>comment.block</string>
+			<string>keyword.commands.functional.disasm</string>
 		</dict>
 		<dict>
+			<key>captures</key>
+			<dict>
+				<key>1</key>
+				<dict>
+					<key>name</key>
+					<string>constant.numeric.disasm</string>
+				</dict>
+				<key>2</key>
+				<dict>
+					<key>name</key>
+					<string>string.disasm</string>
+				</dict>
+			</dict>
 			<key>match</key>
-			<string>[0-9a-fA-F]{7}\w</string>
-			<key>name</key>
-			<string>constant.numeric.disasm</string>
+			<string>([0-9a-fA-F]{8})] ([^ ]*) +</string>
 		</dict>
 	</array>
 	<key>scopeName</key>

@@ -31,8 +31,8 @@ class ExeHeader(NamedStruct):
         ('e_cp',    'H'),           # Pages in file
         ('e_crlc',     'H'),        # Relocations
         ('e_cparhdr',    'H'),      # Size of header in paragraphs
-        ('e_minalloc',   'H'),      # Minimum extra paragraphs needed       
-        ('e_maxalloc',   'H'),      # Maximum extra paragraphs needed   
+        ('e_minalloc',   'H'),      # Minimum extra paragraphs needed
+        ('e_maxalloc',   'H'),      # Maximum extra paragraphs needed
         ('e_ss',         'H'),      # Initial (relative) SS value
         ('e_sp',         'H'),      # Initial SP value
         ('e_csum',   'H'),          # Checksum
@@ -187,7 +187,7 @@ class ExeFile(object):
         #self.pe       = pefile.PE(data=data)
         self.oldheader = ExeHeader(data)
         self.commands  = []
-        
+
         # Controllo se e' PE
         # self.ispe = self.checkIfPE()
 

@@ -2,17 +2,26 @@
   "scopeName": "source.disasm",
   "fileTypes": ["disasm"],
    "patterns": [
-    { "name"	: "entity.name.function.disasm",
-  	  "begin"	: "Contents",
-  	  "end"		: ":",
-  	  "comment"	: "titolo di sezione"
-  	},
-  	{  "name": "comment.block",
-  	   "match": "file format"
-  	},
-    {  "name": "constant.numeric.disasm",
-       "match": "[0-9a-fA-F]{7}\\w" 
+    { "name"  : "entity.name.function.disasm",
+      "begin" : "Section",
+      "end"   : ":",
+      "comment" : "titolo di sezione"
+    },
+
+    { "match": "(eax|ax|ah|al|ebx|bx|bh|bl|ecx|cx|ch|cl|edx|dx|dh|dl|esp|sp|ebp|bp|esi|si|edi|di|cs|ds|ss|es|fs|gs|rax|rbx|rcx|rdx|rsi|rdi|rbp|rsp|rflags|rip)",
+      "name": "keyword.commands.functional.disasm",
+      "comment": "registri"
+    },
+    {  "match": "([0-9a-fA-F]{8})] ([^ ]*) +",
+       "captures": {
+                  "1": { "name":"constant.numeric.disasm" },
+                  "2": { "name": "string.disasm" }
+                }
     }
-  	],
-  	"uuid":"1f7eca28-7c9b-48d5-92e9-987c5686d791"
+
+
+
+    ],
+    "uuid":"1f7eca28-7c9b-48d5-92e9-987c5686d791"
 }
+
