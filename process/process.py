@@ -48,15 +48,15 @@ class CodeSection(Section):
 		#out = [title, '-' * len(title), '']
 		out = [title]
 		prog = pymsasid.Pymsasid(hook   = pymsasid.BufferHook,
-			                     source = self.data,
+		                         source = self.data,
 		                         mode   = 32)
+		
+		prog.input.hook.base_address = self.start
+		currentOffset = self.start
 
-		prog.input.base_address = self.start
-		currentOffset = 0
-
-		while currentOffset < self.size:
+		while currentOffset < self.start + self.size:
 			instruction = prog.disassemble(currentOffset)
-			out.append(' [%08x] %-8s\t%s' % (currentOffset + self.start, str(instruction.operator), str(instruction.operand)[1:-1]))
+			out.append(' [%08x] %-8s\t%s' % (prog.pc, str(instruction.operator), str(instruction.operand)[1:-1]))
 			currentOffset += instruction.size
 
 		return '\n'.join(out) + '\n\n'
