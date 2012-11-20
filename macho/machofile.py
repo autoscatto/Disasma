@@ -52,15 +52,19 @@ class MachOFile(object):
 		self.symbols  = []
 
 		nlist = []
+		machosections = []
+		indirect_symbols = []
 
 		currentOffset = 7 * 4
 		for i in xrange(self.header.numberOfCommands):
 			command, currentOffset = ParseMachOCommand(data, currentOffset)
 			self.commands.append(command)
 
+
 			if isinstance(command, MachOSegmentCommand):
 				for section in command.sections:
 					print section
+					machosections.append(section)
 					name = '%s.%s' % (section.segname, section.sectname)
 					secdata = self.data[section.offset:section.offset + section.size]
 					sectionClass = CodeSection if section.isPureInstructions() else Section
@@ -88,6 +92,11 @@ class MachOFile(object):
 					index = (dyld_reference & 0x00FFFFFF)
 
 					flags_string = ''
+
+					if dyld_reference == 0x80000000: flags_string += ' #LOCAL# '
+					if dyld_reference == 0x40000000: flags_string += ' #ABSOLUTE# '
+					if dyld_reference == 0x40000000 | 0x80000000: flags_string += ' #LOCAL ABSOLUTE# '
+
 					if flags & 0xe0: flags_string += 'N_STAB '
 					if flags & 0x10: flags_string += 'N_PEXT '
 					if flags & 0x01: flags_string += 'N_EXT '
@@ -97,8 +106,53 @@ class MachOFile(object):
 					if flags & 0x0c: flags_string += 'N_PBUD '
 					if flags & 0x0a: flags_string += 'N_INDR '
 
+					indirect_symbols.append(((i, index, flags, flags_string, self.symbols[index] if flags == 0 else '', nlist[index] if flags == 0 else '')))
 
 					print "  > %4d - %4d - %d - %s - %s -  %s" % (i, index, flags, flags_string, self.symbols[index] if flags == 0 else '', nlist[index] if flags == 0 else '')
+
+
+		print ' -' * 10
+
+		for section in machosections:
+			sectiontype = section.flags & 0xFF
+
+			type_string = ('S_REGULAR ',
+			'S_ZEROFILL ',
+			'S_CSTRING_LITERALS ',
+			'S_4BYTE_LITERALS ',
+			'S_8BYTE_LITERALS ',
+			'S_LITERAL_POINTERS ',
+			'S_NON_LAZY_SYMBOLS_STUBS',
+			'S_LAZY_SYMBOL_POINTERS',
+			'S_SYMBOL_STUBS',
+			'S_MOD_INIT_FUNC_POINTERS',
+			'S_MOD_TERM_FUNC_POINTERS',
+			'S_COALESCED',
+			'S_GB_ZEROFILL',
+			'S_INTERPOSING',
+			'S_16BYTE_LITERALS',
+			'S_DTRACE_DOF',
+			'S_LAZY_DYLIB_SYMBOL_POINTERS',
+			'S_THREAD_LOCAL_REGULAR',
+			'S_THREAD_LOCAL_ZEROFILL',
+			'S_THREAD_LOCAL_VARIABLES',
+			'S_THREAD_LOCAL_VARIABLE_POINTERS',
+			'S_THREAD_LOCAL_INIT_FUNCTION_POINTERS')[sectiontype]
+
+			print ' . ' + type_string + ' - ' + section.segname + '.' + section.sectname
+
+			if type_string == 'S_LAZY_SYMBOL_POINTERS' or \
+			   type_string == 'S_NON_LAZY_SYMBOLS_STUBS' or\
+			   type_string == 'S_LAZY_DYLIB_SYMBOL_POINTERS' or\
+			   type_string == 'S_SYMBOL_STUBS':
+
+				stride = section.reserved2 if type_string == 'S_SYMBOL_STUBS' else 4
+				count = section.size / stride
+				n = section.reserved1
+
+				for i in xrange(count):
+					print '    - %08x - %s' % (section.addr + i * stride, indirect_symbols[i + n])
+
 
 	def __str__(self):
 		return 'Number of commands: %s\n%s\nSections:\n%s' % (self.header.numberOfCommands, '\n'.join([str(i) for i in self.commands]), '\n'.join([str(i) for i in self.sections]))
