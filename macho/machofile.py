@@ -49,6 +49,9 @@ class MachOFile(object):
 		self.header   = MachOHeader(data)
 		self.commands = []
 		self.sections = []
+		self.symbols  = []
+
+		nlist = []
 
 		currentOffset = 7 * 4
 		for i in xrange(self.header.numberOfCommands):
@@ -57,6 +60,7 @@ class MachOFile(object):
 
 			if isinstance(command, MachOSegmentCommand):
 				for section in command.sections:
+					print section
 					name = '%s.%s' % (section.segname, section.sectname)
 					secdata = self.data[section.offset:section.offset + section.size]
 					sectionClass = CodeSection if section.isPureInstructions() else Section
@@ -66,16 +70,35 @@ class MachOFile(object):
 						                              secdata))
 
 			if isinstance(command, MachOSymtabCommand):
-				#print command
+				print command
 				symbOffset = command.symoff
 				for i in xrange(command.nsyms):
 					e = NListEntry(self.data, symbOffset)
-					#print e
-					#print getZeroTerminatedString(self.data, command.stroff + e.n_strx)
+					print e
+					nlist.append(e)
+					self.symbols.append(getZeroTerminatedString(self.data, command.stroff + e.n_strx))
 					symbOffset += e.sizeOfStruct()
 
 			if isinstance(command, MachODySymtabCommand):
-				continue #print
+				print command
+
+				for i in xrange(command.nindirectsyms):
+					dyld_reference = struct.unpack_from('<I', self.data, command.indirectsymoff + i * 4)[0]
+					flags = (dyld_reference & 0xFF000000) >> 24
+					index = (dyld_reference & 0x00FFFFFF)
+
+					flags_string = ''
+					if flags & 0xe0: flags_string += 'N_STAB '
+					if flags & 0x10: flags_string += 'N_PEXT '
+					if flags & 0x01: flags_string += 'N_EXT '
+					if flags & 0xe == 0: flags_string += 'N_UNDF '
+					if flags & 0x02: flags_string += 'N_ABS '
+					if flags & 0x0e: flags_string += 'N_SECT '
+					if flags & 0x0c: flags_string += 'N_PBUD '
+					if flags & 0x0a: flags_string += 'N_INDR '
+
+
+					print "  > %4d - %4d - %d - %s - %s -  %s" % (i, index, flags, flags_string, self.symbols[index] if flags == 0 else '', nlist[index] if flags == 0 else '')
 
 	def __str__(self):
 		return 'Number of commands: %s\n%s\nSections:\n%s' % (self.header.numberOfCommands, '\n'.join([str(i) for i in self.commands]), '\n'.join([str(i) for i in self.sections]))

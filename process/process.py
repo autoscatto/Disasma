@@ -87,7 +87,7 @@ class CodeSection(Section):
 						xrefs[br] = xr
 					except:
 						continue
-		#print xrefs
+		
 		for instruction in instructions:
 			xr = xrefs.get(instruction.pc, None)
 			if xr:
@@ -95,6 +95,7 @@ class CodeSection(Section):
 				out.append(' [%08x]\n [%08x] X-Refs from: %s' % (instruction.pc, instruction.pc, xrefstring))
 
 			out.append(' [%08x] %-8s\t%s' % (instruction.pc, str(instruction.operator), str(instruction.operand)[1:-1]))
+			out.append(' [%08x] %-8s\t%s' % (instruction.pc, str(instruction.operator), ' - '.join([str (i) for i in instruction.operand])))
 
 
 
@@ -112,4 +113,4 @@ class Process(object):
 		return section.data[key - section.start]
 
 	def __str__(self):
-		return '\n'.join(str(section) for interval, section in self.sections.items())
+		return '\n'.join(str(section) for interval, section in self.sections.items()) + str(self.symbols)
