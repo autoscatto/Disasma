@@ -104,10 +104,11 @@ class CodeSection(Section):
 		return '\n'.join(out) + '\n\n'
 
 	def getHTML(self):
+		import re
 		inizzio = '<html><head>' + \
 		          '<link rel="stylesheet" type="text/css" href="style.css"/>' + \
 		          '</head><body>'
-		title = '<h1>Section ' + self.name + ':</h1>\n'
+		title = '<pre class="section">== Section ' + self.name + ': ==</pre><br/>\n'
 		out = [inizzio, title]
 		prog = pymsasid.Pymsasid(hook   = pymsasid.BufferHook,
 		                         source = self.data,
@@ -140,8 +141,38 @@ class CodeSection(Section):
 				xrefstring = ', '.join(('%08x' % i for i in xr))
 				out.append('<br/><pre class="xref">X-Refs from: %s</pre><br/>\n' % xrefstring)
 
-			out.append('<pre class="address">[%08x] </pre>' % instruction.pc)
-			out.append('<pre class="operator">%-8s\t%s</pre><br/>\n' % (str(instruction.operator), str(instruction.operand)[1:-1]))
+			out.append('<pre class="inline">[</pre>' + \
+				'<pre class="address" id="%08x">%08x</pre>' % \
+				(instruction.pc, instruction.pc) + \
+				'<pre class="inline">] </pre>')
+			out.append('<pre class="operator">%-8s\t</pre>' % str(instruction.operator))
+
+			for i in range(0, len(instruction.operand)):
+				op = instruction.operand[i]
+				#out.append("(%s, %s)<br/>" % (str(i), str(op)))
+				pattern1 = "(eax|ax|ah|al|ebx|bx|bh|bl|ecx|cx|ch|cl|edx|dx|dh|dl|"
+				pattern1 += "esp|sp|ebp|bp|esi|si|edi|di|cs|ds|ss|es|fs|gs|rax|rbx|"
+				pattern1 += "rcx|rdx|rsi|rdi|rbp|rsp|rflags|rip)"
+				
+				pattern2 = "(.*)([+-]?0x)([0-9A-Fa-f]+)(L?)(.*)"
+
+				p1 = re.compile(pattern1)
+				p2 = re.compile(pattern2)
+				
+				if re.match(pattern1, str(op)) != None:
+					out.append('<pre class="operand_register">%s</pre>' % str(op))
+				elif re.match(pattern2, str(op)) != None:
+					m = re.match(pattern2, str(op))
+					out.append('<pre class="operand">%s</pre>' % m.group(1))
+					out.append('<a href="#%08x"><pre class="operand_address">%s</pre></a>' \
+					 % (int(m.group(3), 16), m.group(2)+m.group(3)+m.group(4)))
+					out.append('<pre class="operand">%s</pre>' % m.group(5))
+				else:
+					out.append('<pre class="operand">%s</pre>' % str(op))
+
+				if i < len(instruction.operand) - 1:
+					out.append('<pre>, </pre>')
+			out.append('<br/>')
 
 		out.append('</body>\n')
 		out.append('</html>')
