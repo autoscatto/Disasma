@@ -32,3 +32,12 @@ def SPUTA_FUORI_IL_ROSPO(filename):
         process.addSection(section)
 
     return process.__str__()
+
+def SPUTA_FUORI_IL_BOSCO(filename):
+    from process.process import *
+    process = Process()
+    theFile = loadFile(filename)
+    for section in theFile.sections:
+        process.addSection(section)
+
+    return process.getHTML()

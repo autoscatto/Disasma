@@ -1,8 +1,10 @@
-from PyQt4 import QtGui, QtCore
+from PyQt4 import QtGui, QtCore, QtWebKit
 import sys, os
+import resources
 
 os.chdir(os.path.dirname(__file__))
 path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+
 if not path in sys.path:
     sys.path.insert(1, path)
 del path
@@ -44,8 +46,9 @@ class MainSyntaxHighlighter(QtGui.QSyntaxHighlighter):
         while index >= 0:
             length = re.matchedLength()
             self.setFormat(index, length, format)
-            index = re.indexIn(text, index+length)         
+            index = re.indexIn(text, index+length)
 
+'''
 class TextWidget(QtGui.QTextEdit):
     def __init__(self, mainWindow):
         super(TextWidget, self).__init__(mainWindow)
@@ -53,6 +56,7 @@ class TextWidget(QtGui.QTextEdit):
 
     def printRaw(self, toPrint):
         self.setPlainText(toPrint)
+'''
 
 class MainView(QtGui.QMainWindow):
 
@@ -63,12 +67,14 @@ class MainView(QtGui.QMainWindow):
     def openStuff(self):
         fileName = QtGui.QFileDialog.getOpenFileName(
             self, 'Open File', '', 'Files (*.*)')
-        toPrint = loader.SPUTA_FUORI_IL_ROSPO(fileName)
-        self.textWidget.printRaw(toPrint)
+        #toPrint = loader.SPUTA_FUORI_IL_ROSPO(fileName)
+        #self.textWidget.printRaw(toPrint)
+        html = loader.SPUTA_FUORI_IL_BOSCO(fileName)        
+        self.webView.setHtml(html, QtCore.QUrl('qrc:/'))
 
     def initUI(self):
         openAction = QtGui.QAction(\
-            QtGui.QIcon('icons/open.png'), 'Open', self)
+            QtGui.QIcon(':icons/open.png'), 'Open', self)
 
         openAction.setShortcut('Ctrl+O')
         openAction.triggered.connect(self.openStuff)
@@ -79,11 +85,9 @@ class MainView(QtGui.QMainWindow):
         self.setGeometry(100, 100, 800, 600)
         self.setWindowTitle('QTDisassa!')
         self.show()
-
-        self.textWidget = TextWidget(self)
-        self.setCentralWidget(self.textWidget)
-
-        self.higlighter = MainSyntaxHighlighter(self.textWidget.document())
+        
+        self.webView = QtWebKit.QWebView(self)
+        self.setCentralWidget(self.webView)
 
 def main():
     

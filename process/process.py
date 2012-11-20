@@ -59,6 +59,9 @@ class Section(object):
 			
 		return '\n'.join(out) + '\n\n'
 
+	def getHTML(self):
+		return ''
+
 class CodeSection(Section):
 	def __str__(self):
 		title = 'Section ' + self.name + ':'
@@ -100,6 +103,51 @@ class CodeSection(Section):
 
 		return '\n'.join(out) + '\n\n'
 
+	def getHTML(self):
+		inizzio = '<html><head>' + \
+		          '<link rel="stylesheet" type="text/css" href="style.css"/>' + \
+		          '</head><body>'
+		title = '<h1>Section ' + self.name + ':</h1>\n'
+		out = [inizzio, title]
+		prog = pymsasid.Pymsasid(hook   = pymsasid.BufferHook,
+		                         source = self.data,
+		                         mode   = 32)
+		
+		prog.input.hook.base_address = self.start
+		currentOffset = self.start
+
+		instructions = []
+		xrefs = {}
+
+		while currentOffset < self.start + self.size:
+			instruction = prog.disassemble(currentOffset)
+			currentOffset += instruction.size
+			instructions.append(instruction)
+
+			for br in instruction.branch():
+				if br != instruction.pc:
+					try:
+						xr = xrefs.get(br, [])
+						xr.append(instruction.pc)
+						xrefs[br] = xr
+					except:
+						continue
+
+		#print xrefs
+		for instruction in instructions:
+			xr = xrefs.get(instruction.pc, None)
+			if xr:
+				xrefstring = ', '.join(('%08x' % i for i in xr))
+				out.append('<br/><pre class="xref">X-Refs from: %s</pre><br/>\n' % xrefstring)
+
+			out.append('<pre class="address">[%08x] </pre>' % instruction.pc)
+			out.append('<pre class="operator">%-8s\t%s</pre><br/>\n' % (str(instruction.operator), str(instruction.operand)[1:-1]))
+
+		out.append('</body>\n')
+		out.append('</html>')
+
+		return ''.join(out)
+
 class Process(object):
 	def __init__(self):
 		self.sections = intervalmap()
@@ -113,3 +161,6 @@ class Process(object):
 
 	def __str__(self):
 		return '\n'.join(str(section) for interval, section in self.sections.items())
+
+	def getHTML(self):
+		return '\n'.join(section.getHTML() for interval, section in self.sections.items())
