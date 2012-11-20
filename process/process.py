@@ -102,8 +102,25 @@ class CodeSection(Section):
 				xrefstring = ', '.join(('%08x' % i for i in xr))
 				out.append(' [%08x] X-Refs from: %s' % (addr, xrefstring))
 
-			out.append(' [%08x] %-8s\t%s' % (addr, str(instruction.operator), str(instruction.operand)[1:-1]))
-			#out.append(' [%08x] %-8s\t%s' % (instruction.pc, str(instruction.operator), ' - '.join([str (i) for i in instruction.operand])))
+			def operand_to_str(operand):
+				address = None
+
+				if operand.type == 'OP_JIMM':
+					address = operand.lval + operand.pc
+
+				if operand.type == 'OP_MEM' and operand.base is None:
+					address = operand.lval + operand.pc
+
+				if address:
+					symbol = self.process.symbols.get(address, None)
+					if symbol:
+						return symbol
+
+				return repr(operand)
+
+
+			out.append(' [%08x] %-8s\t%s' % (addr, str(instruction.operator), ', '.join(map(operand_to_str, instruction.operand))))
+			#out.append(' [%08x] %-8s\t%s' % (addr, str(instruction.operator), ' - '.join([str (i) for i in instruction.operand])))
 
 		return '\n'.join(out) + '\n\n'
 
