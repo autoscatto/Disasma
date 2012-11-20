@@ -8,6 +8,29 @@ class MachOCommand(NamedStruct):
 	)
 
 class MachOSectionInfo(NamedStruct):
+	S_REGULAR                             = 0x00
+	S_ZEROFILL                            = 0x01
+	S_CSTRING_LITERALS                    = 0x02
+	S_4BYTE_LITERALS                      = 0x03
+	S_8BYTE_LITERALS                      = 0x04
+	S_LITERAL_POINTERS                    = 0x05
+	S_NON_LAZY_SYMBOLS_STUBS              = 0x06
+	S_LAZY_SYMBOL_POINTERS                = 0x07
+	S_SYMBOL_STUBS                        = 0x08
+	S_MOD_INIT_FUNC_POINTERS              = 0x09
+	S_MOD_TERM_FUNC_POINTERS              = 0x0a
+	S_COALESCED                           = 0x0b
+	S_GB_ZEROFILL                         = 0x0c
+	S_INTERPOSING                         = 0x0d
+	S_16BYTE_LITERALS                     = 0x0e
+	S_DTRACE_DOF                          = 0x0f
+	S_LAZY_DYLIB_SYMBOL_POINTERS          = 0x10
+	S_THREAD_LOCAL_REGULAR                = 0x11
+	S_THREAD_LOCAL_ZEROFILL               = 0x12
+	S_THREAD_LOCAL_VARIABLES              = 0x13
+	S_THREAD_LOCAL_VARIABLE_POINTERS      = 0x14
+	S_THREAD_LOCAL_INIT_FUNCTION_POINTERS = 0x15
+
 	endianness = '<'
 	definition = (
 		('sectname', '16s'),
@@ -23,8 +46,18 @@ class MachOSectionInfo(NamedStruct):
 		('reserved2', 'I'),
 	)
 
+	@property
+	def type(self):
+		return self.flags & 0xFF
+
 	def isPureInstructions(self):
 		return self.flags & 0x80000000
+
+	def hasSymbols(self):
+		return (self.type == MachOSectionInfo.S_SYMBOL_STUBS) or \
+		       (self.type == MachOSectionInfo.S_LAZY_SYMBOL_POINTERS) or \
+		       (self.type == MachOSectionInfo.S_NON_LAZY_SYMBOLS_STUBS) or \
+		       (self.type == MachOSectionInfo.S_LAZY_DYLIB_SYMBOL_POINTERS)
 
 class MachOSegmentCommand(MachOCommand):
 	definition = (
