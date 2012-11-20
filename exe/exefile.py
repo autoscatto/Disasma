@@ -184,7 +184,7 @@ class ExeFile(object):
 
     def __init__(self, data):
         self.data      = data
-        #self.pe       = pefile.PE(data=data)
+        self.symbols  = {}
         self.oldheader = ExeHeader(data)
         self.commands  = []
 

@@ -122,6 +122,8 @@ class ElfFile(object):
         #print len(data)
         self.data     = data
         self.header   = ElfHeader(data)
+        self.symbols  = {}
+        
         self.commands = []
 
         '''
