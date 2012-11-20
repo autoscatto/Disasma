@@ -104,11 +104,11 @@ class Operand:
     def clear(self):
         self.__init__()
          
-    def __str__(self):
+    def __repr__(self):
         return intel_operand_syntax (self)
     
-    def __repr__(self):
-        return self.__str__()
+    def __str__(self):
+        return 'seg %s - type %s - size %s - lval %s - base %s - index %s - offset %s - scale %s cast %s - pc %s - value %s - ref %s' % (str(self.seg), str(self.type), str(self.size), str(self.lval), str(self.base), str(self.index), str(self.offset), str(self.scale), str(self.cast), str(self.pc), str(self.value), str(self.ref))
 
 class Inst:
     def __init__(self, myInput, add = 0, mode = 16, syntax = intel.intel_syntax):
