@@ -86,20 +86,44 @@ class CodeSection(Section):
 				if br != instruction.pc:
 					try:
 						xr = xrefs.get(br, [])
-						xr.append(instruction.pc)
+						xr.append(instruction.pc - instruction.size)
 						xrefs[br] = xr
 					except:
 						continue
-		#print xrefs
+		
 		for instruction in instructions:
-			xr = xrefs.get(instruction.pc, None)
+			addr = instruction.pc - instruction.size
+			name = self.process.symbols.get(addr, None)
+			if name:
+				out.append(' [%08x]\n [%08x] %s:' % (addr, addr, name))
+
+			xr = xrefs.get(addr, None)
 			if xr:
+				if not name:
+					out.append(' [%08x]' % addr)
+
 				xrefstring = ', '.join(('%08x' % i for i in xr))
-				out.append(' [%08x]\n [%08x] X-Refs from: %s' % (instruction.pc, instruction.pc, xrefstring))
+				out.append(' [%08x] X-Refs from: %s' % (addr, xrefstring))
 
-			out.append(' [%08x] %-8s\t%s' % (instruction.pc, str(instruction.operator), str(instruction.operand)[1:-1]))
+			def operand_to_str(operand):
+				address = None
+
+				if operand.type == 'OP_JIMM':
+					address = operand.lval + operand.pc
+
+				if operand.type == 'OP_MEM' and operand.base is None:
+					address = operand.lval + operand.pc
+
+				if address:
+					symbol = self.process.symbols.get(address, None)
+					if symbol:
+						return symbol
+
+				return repr(operand)
 
 
+			out.append(' [%08x] %-8s\t%s' % (addr, str(instruction.operator), ', '.join(map(operand_to_str, instruction.operand))))
+			#out.append(' [%08x] %-8s\t%s' % (addr, str(instruction.operator), ' - '.join([str (i) for i in instruction.operand])))
 
 		return '\n'.join(out) + '\n\n'
 
@@ -185,6 +209,7 @@ class Process(object):
 
 	def addSection(self, section):
 		self.sections[section.start : section.end] = section
+		section.process = self
 
 	def __getitem__(self, key):
 		section = self.sections[key]
