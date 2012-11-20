@@ -54,10 +54,32 @@ class CodeSection(Section):
 		prog.input.hook.base_address = self.start
 		currentOffset = self.start
 
+		instructions = []
+		xrefs = {}
+
 		while currentOffset < self.start + self.size:
 			instruction = prog.disassemble(currentOffset)
-			out.append(' [%08x] %-8s\t%s' % (prog.pc, str(instruction.operator), str(instruction.operand)[1:-1]))
 			currentOffset += instruction.size
+			instructions.append(instruction)
+
+			for br in instruction.branch():
+				if br != instruction.pc:
+					try:
+						xr = xrefs.get(br, [])
+						xr.append(instruction.pc)
+						xrefs[br] = xr
+					except:
+						continue
+		#print xrefs
+		for instruction in instructions:
+			xr = xrefs.get(instruction.pc, None)
+			if xr:
+				xrefstring = ', '.join(('%08x' % i for i in xr))
+				out.append(' [%08x]\n [%08x] X-Refs from: %s' % (instruction.pc, instruction.pc, xrefstring))
+
+			out.append(' [%08x] %-8s\t%s' % (instruction.pc, str(instruction.operator), str(instruction.operand)[1:-1]))
+
+
 
 		return '\n'.join(out) + '\n\n'
 
