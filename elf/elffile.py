@@ -1,6 +1,7 @@
 from util.namedstruct import *
 from pymsasid import *
 from process.process import *
+from util.util import *
 
 class ElfHeader(NamedStruct):
     endianness = '<'
@@ -152,6 +153,7 @@ class ElfFile(object):
         for i in xrange(shnum):
             shentry = ElfSection(self.data, shoff+i*shentsize)
             shentry.string_section = strtable
+
             self.elfSections[shentry.getName()] = shentry
             # Saving only mapped segments
             if shentry.sh_addr != 0:
@@ -164,9 +166,19 @@ class ElfFile(object):
                                               shentry.sh_size,
                                               secdata))
 
-        #for key in sorted(self.vmem.iterkeys()):
-        #    print '0x%08x' % (key), ': ', self.vmem[key].getName(), \
-        #          ' size: ', self.vmem[key].sh_size
+        shentry = self.elfSections['.symtab']
+        dynstr = self.elfSections['.strtab']
+
+        curOff = shentry.sh_offset
+        while curOff < shentry.sh_offset + shentry.sh_size:
+            symbol = ElfSymbolTableEntry(self.data, curOff)
+            print symbol
+            if symbol.st_name != 0:
+                print getZeroTerminatedString(self.data, dynstr.sh_offset  + symbol.st_name)
+                self.symbols[symbol.st_value] = getZeroTerminatedString(self.data, dynstr.sh_offset  + symbol.st_name)
+            
+            curOff += symbol.sizeOfStruct()
+        print self.symbols
 
     def accessVMAddress(self, address, bytes=4):
         for vmaddress in self.vmem.iterkeys():
