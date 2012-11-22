@@ -1,0 +1,36 @@
+pre {
+    display: inline;
+    color: #F8F8F2;
+}
+
+pre.address {
+    color: #AE81BC;
+}
+
+pre.operator {
+    color: #E6DB5A;
+}
+
+pre.xref {
+    color: grey;
+}
+
+pre.operand_register {
+    color: #F92672;
+}
+
+pre.operand_address {
+    color: #AE81BC;
+}
+
+pre.section {
+    color: #A6E22E;
+}
+
+a {
+    text-decoration: none;
+}
+
+body {
+    background-color: #272822;
+}

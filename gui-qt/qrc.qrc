@@ -1,0 +1,6 @@
+ <!DOCTYPE RCC><RCC version="1.0">
+ <qresource>
+     <file>style.css</file>
+	 <file>icons/open.png</file>
+ </qresource>
+ </RCC>

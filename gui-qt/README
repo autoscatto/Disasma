@@ -1,0 +1,3 @@
+If you modify style.css, you need to recompile the resource file.
+
+    pyrcc4 -py2 qrc.qrc > resources.py
