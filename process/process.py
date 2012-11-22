@@ -109,10 +109,10 @@ class CodeSection(Section):
 				address = None
 
 				if operand.type == 'OP_JIMM':
-					address = operand.lval + operand.pc
+					address = operand.lval + operand.pc # - instruction.size?
 
 				if operand.type == 'OP_MEM' and operand.base is None:
-					address = operand.lval + operand.pc
+					address = operand.lval + operand.pc # - instruction.size?
 
 				if address:
 					symbol = self.process.symbols.get(address, None)
@@ -128,12 +128,13 @@ class CodeSection(Section):
 		return '\n'.join(out) + '\n\n'
 
 	def getHTML(self):
-		import re
+		# import re
+		preinizzio = '<!DOCTYPE HTML>\n'
 		inizzio = '<html><head>' + \
-		          '<link rel="stylesheet" type="text/css" href="style.css"/>' + \
+		          '<link rel="stylesheet" type="text/css" href="style.css"/>\n' + \
 		          '</head><body>'
-		title = '<pre class="section">== Section ' + self.name + ': ==</pre><br/>\n'
-		out = [inizzio, title]
+		title = '<pre class="section">== Section %s : ==</pre><br/>\n' % self.name
+		out = [preinizzio, inizzio, title]
 		prog = pymsasid.Pymsasid(hook   = pymsasid.BufferHook,
 		                         source = self.data,
 		                         mode   = 32)
@@ -153,50 +154,67 @@ class CodeSection(Section):
 				if br != instruction.pc:
 					try:
 						xr = xrefs.get(br, [])
-						xr.append(instruction.pc)
+						xr.append(instruction.pc - instruction.size)
 						xrefs[br] = xr
 					except:
 						continue
 
-		#print xrefs
+		#print xrefs and names
 		for instruction in instructions:
+			sz = instruction.size
+			addr = instruction.pc - instruction.size
+			name = self.process.symbols.get(addr, None)
+
+			htmlAddr = '<pre> [</pre><pre class="address">%08x</pre><pre>] </pre>' % (addr)
+
+			if name:
+				out.append('%s<br/>%s<pre id="ref_%s" type="refname">%s</pre><br/>' % \
+					(htmlAddr, htmlAddr, name, name))
+
 			xr = xrefs.get(instruction.pc, None)
 			if xr:
-				xrefstring = ', '.join(('%08x' % i for i in xr))
-				out.append('<br/><pre class="xref">X-Refs from: %s</pre><br/>\n' % xrefstring)
-
-			out.append('<pre class="inline">[</pre>' + \
+				xrefstring = ', '.join(('<a href="#%08x"><pre class="xref">%08x</pre></a>' % (i, i) for i in xr))
+				out.append('%s<pre class="xref">X-Refs from: %s</pre><br/>\n' % \
+					(htmlAddr, xrefstring))
+			
+			out.append('<pre class="inline"> [</pre>' + \
 				'<pre class="address" id="%08x">%08x</pre>' % \
-				(instruction.pc, instruction.pc) + \
-				'<pre class="inline">] </pre>')
+				(addr, addr) + \
+				'<pre>] </pre>')
 			out.append('<pre class="operator">%-8s\t</pre>' % str(instruction.operator))
 
 			for i in range(0, len(instruction.operand)):
 				op = instruction.operand[i]
-				#out.append("(%s, %s)<br/>" % (str(i), str(op)))
-				pattern1 = "(eax|ax|ah|al|ebx|bx|bh|bl|ecx|cx|ch|cl|edx|dx|dh|dl|"
-				pattern1 += "esp|sp|ebp|bp|esi|si|edi|di|cs|ds|ss|es|fs|gs|rax|rbx|"
-				pattern1 += "rcx|rdx|rsi|rdi|rbp|rsp|rflags|rip)"
 				
-				pattern2 = "(.*)([+-]?0x)([0-9A-Fa-f]+)(L?)(.*)"
-
-				p1 = re.compile(pattern1)
-				p2 = re.compile(pattern2)
-				
-				if re.match(pattern1, str(op)) != None:
-					out.append('<pre class="operand_register">%s</pre>' % str(op))
-				elif re.match(pattern2, str(op)) != None:
-					m = re.match(pattern2, str(op))
-					out.append('<pre class="operand">%s</pre>' % m.group(1))
-					out.append('<a href="#%08x"><pre class="operand_address">%s</pre></a>' \
-					 % (int(m.group(3), 16), m.group(2)+m.group(3)+m.group(4)))
-					out.append('<pre class="operand">%s</pre>' % m.group(5))
+				if op.type == 'OP_REG':
+					out.append('<pre class="operand_register">%s</pre>' % op.base)
+				elif op.type == 'OP_MEM':
+					name = self.process.symbols.get(op.lval + op.pc - sz, None)
+					if name:
+						out.append('<a href="#ref_%s"><pre class="operand_reference">%s</pre></a>' \
+							% (name, name))
+					else:
+						out.append('<pre>[</pre>' + \
+							'<a href="#%08x"><pre class="operand_address">%s0x%x</pre></a>' \
+							% (op.lval + op.pc - sz, '-' * (op.lval < 0), abs(op.lval))
+							+ '<pre>]</pre>')
+				elif op.type == 'OP_JIMM':
+					name = self.process.symbols.get(op.lval + op.pc - sz, None)
+					if name:
+						out.append('<a href="#ref_%s"><pre class="operand_reference">%s</pre></a>' \
+							% (name, name))
+					else:
+						out.append('<a href="#%08x"><pre class="operand_address">%s0x%x</pre></a>' \
+							% (op.lval + op.pc, '-' * (op.lval < 0), abs(op.lval)))
+				elif op.type == 'OP_IMM':
+					out.append('<pre class="operand_immediate">%s0x%x</pre>' \
+						% ('-' * (op.lval < 0), op.lval))
 				else:
-					out.append('<pre class="operand">%s</pre>' % str(op))
+					out.append('<pre class="operand">QUALCOSA di tipo %s</pre>' % op.type)
 
 				if i < len(instruction.operand) - 1:
 					out.append('<pre>, </pre>')
-			out.append('<br/>')
+			out.append('<br/>\n')
 
 		out.append('</body>\n')
 		out.append('</html>')

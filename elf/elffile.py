@@ -172,13 +172,13 @@ class ElfFile(object):
         curOff = shentry.sh_offset
         while curOff < shentry.sh_offset + shentry.sh_size:
             symbol = ElfSymbolTableEntry(self.data, curOff)
-            print symbol
+            # print symbol
             if symbol.st_name != 0:
-                print getZeroTerminatedString(self.data, dynstr.sh_offset  + symbol.st_name)
+                #print getZeroTerminatedString(self.data, dynstr.sh_offset  + symbol.st_name)
                 self.symbols[symbol.st_value] = getZeroTerminatedString(self.data, dynstr.sh_offset  + symbol.st_name)
             
             curOff += symbol.sizeOfStruct()
-        print self.symbols
+        # print self.symbols
 
     def accessVMAddress(self, address, bytes=4):
         for vmaddress in self.vmem.iterkeys():
