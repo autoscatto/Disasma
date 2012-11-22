@@ -133,8 +133,9 @@ class CodeSection(Section):
 		inizzio = '<html><head>' + \
 		          '<link rel="stylesheet" type="text/css" href="style.css"/>\n' + \
 		          '</head><body>'
-		title = '<pre class="section">== Section %s : ==</pre><br/>\n' % self.name
-		out = [preinizzio, inizzio, title]
+		content = '<div class="content">'
+		title = '<div class="row"><div class="section">== Section %s : ==</div></div><br/>\n' % self.name
+		out = [preinizzio, inizzio, content, title]
 		prog = pymsasid.Pymsasid(hook   = pymsasid.BufferHook,
 		                         source = self.data,
 		                         mode   = 32)
@@ -165,57 +166,65 @@ class CodeSection(Section):
 			addr = instruction.pc - instruction.size
 			name = self.process.symbols.get(addr, None)
 
-			htmlAddr = '<pre> [</pre><pre class="address">%08x</pre><pre>] </pre>' % (addr)
+			htmlAddr = '<div> [</div><div class="address">%08x</div><div>] </div>' % (addr)
 
 			if name:
-				out.append('%s<br/>%s<pre id="ref_%s" type="refname">%s</pre><br/>' % \
-					(htmlAddr, htmlAddr, name, name))
+				out.append('<div class="row">%s</div><br/>' % htmlAddr)
+				out.append('<div class="row">%s<div id="ref_%s" type="refname">%s</div></div><br/>' % \
+					(htmlAddr, name, name))
 
 			xr = xrefs.get(instruction.pc, None)
 			if xr:
-				xrefstring = ', '.join(('<a href="#%08x"><pre class="xref">%08x</pre></a>' % (i, i) for i in xr))
-				out.append('%s<pre class="xref">X-Refs from: %s</pre><br/>\n' % \
+				out.append('<div class="row">')
+				xrefstring = ', '.join(('<a href="#%08x"><div class="xref">%08x</div></a>' % (i, i) for i in xr))
+				out.append('%s<div class="xref">X-Refs from: %s</div><br/>\n' % \
 					(htmlAddr, xrefstring))
+				out.append('</div>')
 			
-			out.append('<pre class="inline"> [</pre>' + \
-				'<pre class="address" id="%08x">%08x</pre>' % \
+			out.append('<div class="row">')
+			out.append('<div> [</div>' + \
+				'<div class="address" id="%08x">%08x</div>' % \
 				(addr, addr) + \
-				'<pre>] </pre>')
-			out.append('<pre class="operator">%-8s\t</pre>' % str(instruction.operator))
+				'<div>] </div>')
+			out.append('<div class="operator">%-8s\t</div>' % str(instruction.operator))
 
 			for i in range(0, len(instruction.operand)):
 				op = instruction.operand[i]
 				
 				if op.type == 'OP_REG':
-					out.append('<pre class="operand_register">%s</pre>' % op.base)
+					out.append('<div class="operand_register">%s</div>' % op.base)
 				elif op.type == 'OP_MEM':
 					name = self.process.symbols.get(op.lval + op.pc - sz, None)
 					if name:
-						out.append('<a href="#ref_%s"><pre class="operand_reference">%s</pre></a>' \
+						out.append('<a href="#ref_%s"><div class="operand_reference">%s</div></a>' \
 							% (name, name))
 					else:
-						out.append('<pre>[</pre>' + \
-							'<a href="#%08x"><pre class="operand_address">%s0x%x</pre></a>' \
+						out.append('<div>[</div>' + \
+							'<a href="#%08x"><div class="operand_address">%s0x%x</div></a>' \
 							% (op.lval + op.pc - sz, '-' * (op.lval < 0), abs(op.lval))
-							+ '<pre>]</pre>')
+							+ '<div>]</div>')
 				elif op.type == 'OP_JIMM':
 					name = self.process.symbols.get(op.lval + op.pc - sz, None)
 					if name:
-						out.append('<a href="#ref_%s"><pre class="operand_reference">%s</pre></a>' \
+						out.append('<a href="#ref_%s"><div class="operand_reference">%s</div></a>' \
 							% (name, name))
 					else:
-						out.append('<a href="#%08x"><pre class="operand_address">%s0x%x</pre></a>' \
+						out.append('<a href="#%08x"><div class="operand_address">%s0x%x</div></a>' \
 							% (op.lval + op.pc, '-' * (op.lval < 0), abs(op.lval)))
 				elif op.type == 'OP_IMM':
-					out.append('<pre class="operand_immediate">%s0x%x</pre>' \
+					out.append('<div class="operand_immediate">%s0x%x</div>' \
 						% ('-' * (op.lval < 0), op.lval))
 				else:
-					out.append('<pre class="operand">QUALCOSA di tipo %s</pre>' % op.type)
+					out.append('<div class="operand">QUALCOSA di tipo %s</div>' % op.type)
 
 				if i < len(instruction.operand) - 1:
-					out.append('<pre>, </pre>')
+					out.append('<div>, </div>')
+			# end row
+			out.append('</div>')
 			out.append('<br/>\n')
 
+		# end content
+		out.append('</div>\n')
 		out.append('</body>\n')
 		out.append('</html>')
 

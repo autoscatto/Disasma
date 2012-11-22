@@ -1,29 +1,40 @@
-pre {
+div {
     display: inline;
     color: #F8F8F2;
+    font-family: "Segoe UI mono";
+    font-size: 20px;
 }
 
-pre.address {
+div.address {
     color: #AE81BC;
 }
 
-pre.operator {
+div.operator {
     color: #E6DB5A;
 }
 
-pre.xref {
+div.row {
+    margin-left: 35%;
+}
+
+div.sect_row {
+    margin-left: 0;
+    cursor: hand;
+}
+
+div.xref {
     color: grey;
 }
 
-pre.operand_register {
+div.operand_register {
     color: #F92672;
 }
 
-pre.operand_address {
+div.operand_address {
     color: #AE81BC;
 }
 
-pre.section {
+div.section {
     color: #A6E22E;
 }
 

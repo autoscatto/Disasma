@@ -48,3 +48,15 @@ def SPUTA_FUORI_IL_BOSCO(filename):
         process.addSection(section)
 
     return process.getHTML()
+
+def SPUTA_FUORI_IL_MOSTO(filename):
+    from process.process import *
+    process = Process()
+    theFile = loadFile(filename)
+
+    process.symbols = theFile.symbols
+    
+    for section in theFile.sections:
+        process.addSection(section)
+
+    return process
