@@ -33,10 +33,10 @@ class MainSyntaxHighlighter(QtGui.QSyntaxHighlighter):
         re = QtCore.QRegExp(pattern)
         index = re.indexIn(text, 0)
         while index >= 0:
-            #index = 
+            #index =
             length = re.matchedLength()
             self.setFormat(index, length, format)
-            index = re.indexIn(text, index+length) 
+            index = re.indexIn(text, index+length)
 
         format.setForeground(QtCore.Qt.darkGreen)
         pattern = 'Section.*:'
@@ -107,7 +107,7 @@ class MainView(QtGui.QMainWindow):
 
     def openStuff(self):
         fileName = QtGui.QFileDialog.getOpenFileName(
-            self, 'Open File', '', 'Files (*.*)')
+            self, 'Open File', '', 'Files (*)')
         #toPrint = loader.SPUTA_FUORI_IL_ROSPO(fileName)
         #self.textWidget.printRaw(toPrint)
 
@@ -120,9 +120,9 @@ class MainView(QtGui.QMainWindow):
         self.anal.start()
 
         self.sectView = SectionViewer(self.process)
-        self.sectView.contentReady.connect(self.showView)   
+        self.sectView.contentReady.connect(self.showView)
 
-        #html = loader.SPUTA_FUORI_IL_BOSCO(fileName)        
+        #html = loader.SPUTA_FUORI_IL_BOSCO(fileName)
         #self.webView.setHtml(html, QtCore.QUrl('qrc:/'))
 
     def initUI(self):
@@ -139,12 +139,12 @@ class MainView(QtGui.QMainWindow):
         self.setWindowTitle('QTDisassa!')
         self.show()
         #self.showMaximized()
-        
+
         self.webView = QtWebKit.QWebView(self)
         self.setCentralWidget(self.webView)
 
 def main():
-    
+
     app = QtGui.QApplication(sys.argv)
     mainView = MainView()
     sys.exit(app.exec_())
