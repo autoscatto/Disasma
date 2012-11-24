@@ -2,5 +2,7 @@
  <qresource>
      <file>style.css</file>
 	 <file>icons/open.png</file>
+     <file>icons/cpu.png</file>
+     <file>icons/sections.png</file>
  </qresource>
  </RCC>

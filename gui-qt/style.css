@@ -1,7 +1,7 @@
 div {
     display: inline;
     color: #F8F8F2;
-    font-family: "Segoe UI mono";
+    font-family: "Segoe UI mono", "Courier New", monospace;
     font-size: 20px;
 }
 
@@ -36,6 +36,22 @@ div.operand_address {
 
 div.section {
     color: #A6E22E;
+}
+
+div.vmview {
+    height: 65px;
+    display: inline;
+    float: left;
+    /* overflow: hidden; */
+}
+
+div.clear {
+    clear: both;
+}
+
+div.content {
+    display: block;
+    clear: both;
 }
 
 a {

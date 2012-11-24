@@ -128,14 +128,9 @@ class CodeSection(Section):
 		return '\n'.join(out) + '\n\n'
 
 	def getHTML(self):
-		# import re
-		preinizzio = '<!DOCTYPE HTML>\n'
-		inizzio = '<html><head>' + \
-		          '<link rel="stylesheet" type="text/css" href="style.css"/>\n' + \
-		          '</head><body>'
 		content = '<div class="content">'
 		title = '<div class="row"><div class="section">== Section %s : ==</div></div><br/>\n' % self.name
-		out = [preinizzio, inizzio, content, title]
+		out = [content, title]
 		prog = pymsasid.Pymsasid(hook   = pymsasid.BufferHook,
 		                         source = self.data,
 		                         mode   = 32)
@@ -222,12 +217,7 @@ class CodeSection(Section):
 			# end row
 			out.append('</div>')
 			out.append('<br/>\n')
-
-		# end content
-		out.append('</div>\n')
-		out.append('</body>\n')
-		out.append('</html>')
-
+		out.append('</div>')
 		return ''.join(out)
 
 class Process(object):
