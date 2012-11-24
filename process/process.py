@@ -60,7 +60,12 @@ class Section(object):
 		return '\n'.join(out) + '\n\n'
 
 	def getHTML(self):
-		return ''
+		content = '<div class="content">'
+		title = '<div class="row"><div class="section">== Section %s : ==</div></div><br/>\n' % self.name
+		out = [content, title]
+		out.append('<div class="row">To be implemented</div><br/>')
+		out.append('</div>')
+		return ''.join(out)
 
 class CodeSection(Section):
 	def __str__(self):
@@ -217,6 +222,7 @@ class CodeSection(Section):
 			# end row
 			out.append('</div>')
 			out.append('<br/>\n')
+
 		out.append('</div>')
 		return ''.join(out)
 

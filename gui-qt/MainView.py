@@ -11,53 +11,6 @@ del path
 
 from util import *
 
-class MainSyntaxHighlighter(QtGui.QSyntaxHighlighter):
-    def highlightBlock(self, text):
-        format = QtGui.QTextCharFormat()
-        format.setForeground(QtCore.Qt.darkMagenta)
-
-        pattern = "(eax|ax|ah|al|ebx|bx|bh|bl|ecx|cx|ch|cl|edx|dx|dh|dl|"
-        pattern += "esp|sp|ebp|bp|esi|si|edi|di|cs|ds|ss|es|fs|gs|rax|rbx|"
-        pattern += "rcx|rdx|rsi|rdi|rbp|rsp|rflags|rip)"
-
-        re = QtCore.QRegExp(pattern)
-        index = re.indexIn(text, 0)
-        while index >= 0:
-            length = re.matchedLength()
-            self.setFormat(index, length, format)
-            index = re.indexIn(text, index+length)
-
-        format.setForeground(QtCore.Qt.blue)
-        pattern = '([0-9a-fA-F]{8})'# ([^ ]*) +'
-
-        re = QtCore.QRegExp(pattern)
-        index = re.indexIn(text, 0)
-        while index >= 0:
-            #index =
-            length = re.matchedLength()
-            self.setFormat(index, length, format)
-            index = re.indexIn(text, index+length)
-
-        format.setForeground(QtCore.Qt.darkGreen)
-        pattern = 'Section.*:'
-
-        re = QtCore.QRegExp(pattern)
-        index = re.indexIn(text, 0)
-        while index >= 0:
-            length = re.matchedLength()
-            self.setFormat(index, length, format)
-            index = re.indexIn(text, index+length)
-
-'''
-class TextWidget(QtGui.QTextEdit):
-    def __init__(self, mainWindow):
-        super(TextWidget, self).__init__(mainWindow)
-        self.setFont(QtGui.QFont('Courier', 9))
-
-    def printRaw(self, toPrint):
-        self.setPlainText(toPrint)
-'''
-
 class ANALyzer(QtCore.QObject):
     contentChanged = QtCore.pyqtSignal()
 
@@ -181,11 +134,12 @@ class MainView(QtGui.QMainWindow):
     def showHtml(self):
         stuff = self.anal.stuff
         self.webView.setHtml(stuff, QtCore.QUrl('qrc:/'))
-        self.webView.page().mainFrame().addToJavaScriptWindowObject("sv", self.sectView);
+        self.webView.page().mainFrame().addToJavaScriptWindowObject("sv", self.sectView)
 
     def showView(self):
         stuff = self.sectView.stuff
         self.webView.setHtml(stuff, QtCore.QUrl('qrc:/'))
+        self.webView.page().mainFrame().addToJavaScriptWindowObject("sv", self.sectView)
 
     def showBackground(self):
         self.webView.setHtml('<html><head><link rel="stylesheet" href="style.css"/></head><body></body></html>', \
