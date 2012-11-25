@@ -14,7 +14,6 @@ class Fragment(object):
         return self.start + self.size
 
     def resize(self, newSize, startEnd, newData=[]):
-        print "size: %d, newSize: %d, startEnd: %d, newData=" % (self.size, newSize, startEnd), newData
         # 0 = start, 1 = end
         if newSize < self.size:
             if startEnd == 0:
@@ -104,7 +103,7 @@ class CodeFragment(Fragment):
             instruction = prog.disassemble(currentOffset)
             currentOffset += instruction.size
             if instruction.size == 0:
-                instruction.pc = currentOffset
+                instruction.pc = currentOffset+1
                 currentOffset += self.size
             instructions.append(instruction)
         

@@ -53,74 +53,8 @@ class SectionViewer(QtCore.QObject):
 
     @QtCore.pyqtSlot(str, int, int)
     def viewAs(self, mode, start, end):
-        dstart = start - self.sect.start
-        dend = dstart + (end - start)
-        data = self.sect.data[dstart:dend]
-
-        prev = self.sect.fragments[start]
-        next = self.sect.fragments[end]
-
         fragType = fragment.CodeFragment if mode == 'code' else fragment.DataFragment
-        frag = None
-
-        if prev != next:
-            if type(prev) == fragType and type(next) == fragType:
-                print "This actually shouldn't happen"
-            # Enlarge your prev
-            elif type(prev) == fragType and type(next) != fragType:
-                prev.resize(end-prev.start, 1, data[end-prev.start-prev.size:])
-                next.resize(next.end-end, 0)
-                self.sect.fragments[prev.start:prev.end] = prev
-            # Enlarge your next
-            elif type(prev) != fragType and type(next) == fragType:
-                next.resize(next.end-start, 0, data[0:next.start-start])
-                prev.resize(start-prev.start, 1)
-                self.sect.fragments[next.start:next.end] = next
-            # Enlarge staceppa, must add a new fragment
-            else:
-                next.resize(next.end-end, 0)
-                prev.resize(start-prev.start, 1)
-
-                frag = fragType(data, start)
-        else:
-            # Need to place it at the beginning
-            if start == prev.start and type(prev) != fragType:
-                print start, prev.start, end, prev.end
-                frag12 = prev.split(end-start)
-                prev.resize(prev.size-end+start, 0)
-                frag = fragType(frag12[0].data, frag12[0].start)
-
-            # Need to place it in the middle of prev
-            elif start != prev.start and end != prev.start + prev.size and type(prev) != fragType:
-                frag123 = prev.doubleSplit(start-prev.start, end-prev.start)
-
-                assert prev.size == frag123[0].size+frag123[1].size+frag123[2].size
-
-                #print "%08x %08x %08x" %(frag123[0].start, frag123[1].start, frag123[2].start)
-                frag = fragType(frag123[1].data, frag123[1].start)
-
-                self.sect.fragments[frag123[0].start:frag123[0].end] = prev.__class__(frag123[0].data, frag123[0].start)
-                self.sect.fragments[frag123[2].start:frag123[2].end] = prev.__class__(frag123[2].data, frag123[2].start)
-
-                #del prev
-
-            # Need to place it at the end
-            elif type(prev) != fragType:
-                frag12 = prev.split(start-prev.start)
-
-                frag1 = prev.__class__(frag12[0].data, frag12[0].start)
-                frag = fragType(frag12[1].data, frag12[1].start)
-
-                self.sect.fragments[frag1.start:frag1.end] = frag1
-
-        if frag != None:
-            if fragType == type(self.sect.fragments[start-1]):
-                x = self.sect.fragments[start-1]
-                x.resize(x.size+frag.size, 1, data)
-                self.sect.fragments[x.start:x.end] = x
-            else:
-                self.sect.fragments[start:end] = frag
-        
+        self.sect.addFragment(fragType, start, end)        
         self.show()
 
     @QtCore.pyqtSlot(int)
@@ -161,13 +95,14 @@ class VirtualMemoryView(object):
         last = -1
 
         for (interval, section) in process.sections.items():
+            # just to avoid elf .strtab and .symtab, clearly it 
+            # has to be fixed
             if self.min == -1 and interval[0] > 2000:
                 self.min = interval[0]
             self.max = interval[1]
 
             if last != -1:
                 if last != interval[0] and last > 2000:
-                    print "%08x %08x" % (interval[0], last)
                     tmp.append(('gap', interval[0]-last, interval[0]))
 
             last = interval[1]
