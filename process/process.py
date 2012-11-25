@@ -71,6 +71,7 @@ class Section(object):
 		out = []
 		for (interval, f) in self.fragments.items():
 			if interval[0] != interval[1]:
+				print "%08x:%08x" % (interval[0], interval[1])
 				out.append(str(f))
 		return ''.join(out)
 
@@ -79,7 +80,9 @@ class Section(object):
 		out.append('    <div class="section">\n')
 
 		for (interval, f) in self.fragments.items():
+
 			if interval[0] != interval[1]:
+				print "%08x:%08x" % (interval[0], interval[1])
 				out.append(f.getHtml())
 
 		out.append('    </div>\n')

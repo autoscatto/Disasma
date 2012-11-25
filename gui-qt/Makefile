@@ -6,7 +6,7 @@ all:
 	python ./MainView.py
 
 clean:
-	cmd /C del *.pyc
+	powershell /C rm *.pyc, */*.pyc, ../*/*.pyc
 
 compile:
 	pyrcc4 -py2 qrc.qrc > resources.py

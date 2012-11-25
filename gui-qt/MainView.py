@@ -53,12 +53,17 @@ class SectionViewer(QtCore.QObject):
 
     @QtCore.pyqtSlot(str, int, int)
     def viewAs(self, mode, start, end):
-        print "Old intervals:"
-        for (interval, f) in self.sect.fragments.items():
-            print "(%08x, %08x)" % (interval[0], interval[1])
+        #print "Old intervals:"
+        #for (interval, f) in self.sect.fragments.items():
+        #    print "(%08x, %08x)" % (interval[0], interval[1])
 
-        print 'Editing range (%08x, %08x) inside of range (%08x, %08x)' % \
-                (start, end, self.sect.start, self.sect.start+self.sect.size)
+        #print 'Editing range (%08x, %08x) inside of range (%08x, %08x)' % \
+        #        (start, end, self.sect.start, self.sect.start+self.sect.size)
+        ######################################################################
+        #                                                                    #
+        #     TODO: check if also the section at [start-1] can be merged     #
+        #                                                                    #
+        ######################################################################
         dstart = start - self.sect.start
         dend = dstart + (end - start)
         data = self.sect.data[dstart:dend]
@@ -69,85 +74,61 @@ class SectionViewer(QtCore.QObject):
         fragType = fragment.CodeFragment if mode == 'code' else fragment.DataFragment
         frag = None
 
-        next_ = None
-
         if prev != next:
             if type(prev) == fragType and type(next) == fragType:
                 print "This actually shouldn't happen"
             # Enlarge your prev
             elif type(prev) == fragType and type(next) != fragType:
-                prev.data = self.sect.data[0:end-prev.start]
-                prev.size = len(prev.data)
-                self.sect.fragments[prev.start:end] = prev
-
-                next.data = next.data[end-next.start:]
-                next.size = len(next.data)
-                next.start += end-next.start
+                prev.resize(end-prev.start, 1, data[end-prev.start-prev.size:])
+                next.resize(next.end-end, 0)
+                self.sect.fragments[prev.start:prev.end] = prev
             # Enlarge your next
             elif type(prev) != fragType and type(next) == fragType:
-                prev.data = prev.data[0:prev.start+prev.size-start]
-                prev.size = len(prev.data)
-
-                next.data = self.sect.data[dstart:next.start-self.sect.start+next.size]
-                next.size = len(next.data)
-                self.sect.fragments[start:start+next.size] = next
+                next.resize(next.end-start, 0, data[0:next.start-start])
+                prev.resize(start-prev.start, 1)
+                self.sect.fragments[next.start:next.end] = next
             # Enlarge staceppa, must add a new fragment
             else:
-                print "prev != next"
-                i = start - prev.start
-                j = i + (end-start)
-                j_ = prev.size - i
+                next.resize(next.end-end, 0)
+                prev.resize(start-prev.start, 1)
 
-                frag = fragType(prev.data[i:] + next.data[0:j_], start)
-                prev.data = prev.data[0:i]
-                prev.size = len(prev.data)
-                next.data = next.data[j_:]
-                next.size = len(next.data)
-                next.start += j_
+                frag = fragType(data, start)
         else:
             # Need to place it at the beginning
             if start == prev.start and type(prev) != fragType:
-                print '1'
-                i = 0
-                j = end-start
-                frag = fragType(prev.data[i:j], start)
-                prev.data = prev.data[j:]
-                prev.size = len(prev.data)
-                prev.start += j
+                frag12 = prev.split(end-start)
+                prev.resize(prev.size-end+start, 0)
+                frag = fragType(frag12[0].data, frag12[0].start)
+
             # Need to place it in the middle of prev
             elif start != prev.start and end != prev.start + prev.size and type(prev) != fragType:
-                print '2'
+                frag123 = prev.doubleSplit(start-prev.start, end-prev.start)
 
-                print "Prev int: (%08x, %08x) size: %d" % (prev.start, prev.start+prev.size, prev.size)
-                nxType = fragment.CodeFragment if type(prev) == 'fragment.CodeFragment' else fragment.DataFragment
-                i = start-prev.start
-                j = i + (end-start)
-                frag = fragType(prev.data[i:j], start)
-                next_ = nxType(prev.data[j:], end)
-                self.sect.fragments[end:end+next_.size] = next_
-                print "Middle intervals:"
-                for (interval, f) in self.sect.fragments.items():
-                    print "(%08x, %08x)" % (interval[0], interval[1])
-                print 0, i, j, j+next_.size
-                prev.data = prev.data[0:i]
-                prev.size = len(prev.data)
+                assert prev.size == frag123[0].size+frag123[1].size+frag123[2].size
 
-                print "Prev int: (%08x, %08x) size: %d (should be %d)" % (prev.start, prev.start+prev.size, prev.size, len(prev.data))
-                print "Frag int: (%08x, %08x) size: %d (should be %d)" % (frag.start, frag.start+frag.size, frag.size, len(frag.data))
-                print "Next_ int: (%08x, %08x) size: %d (should be %d)" % (next_.start, next_.start+next_.size, next_.size, len(next_.data))
+                #print "%08x %08x %08x" %(frag123[0].start, frag123[1].start, frag123[2].start)
+                frag = fragType(frag123[1].data, frag123[1].start)
+
+                self.sect.fragments[frag123[0].start:frag123[0].end] = prev.__class__(frag123[0].data, frag123[0].start)
+                self.sect.fragments[frag123[2].start:frag123[2].end] = prev.__class__(frag123[2].data, frag123[2].start)
+
+                #del prev
+
             # Need to place it at the end
             elif type(prev) != fragType:
-                print '3'
-                i = start-prev.start
-                frag = fragType(prev.data[i:], start)
-                prev.data = prev.data[0:i]
-                prev.size = len(prev.data)
+                frag12 = prev.split(start-prev.start)
+
+                frag1 = prev.__class__(frag12[0].data, frag12[0].start)
+                frag = fragType(frag12[1].data, frag12[1].start)
+
+                self.sect.fragments[frag1.start:frag1.end] = frag1
 
         if frag != None:
             self.sect.fragments[start:end] = frag
-        print "New intervals:"
-        for (interval, f) in self.sect.fragments.items():
-            print "(%08x, %08x)" % (interval[0], interval[1])
+        
+        #print "New intervals:"
+        #for (interval, f) in self.sect.fragments.items():
+        #    print "(%08x, %08x)" % (interval[0], interval[1])
         self.show()
 
     @QtCore.pyqtSlot(int)

@@ -1,11 +1,48 @@
 from pymsasid import *
 
-class DataFragment:
+class Fragment(object):
     def __init__(self, data, start):
         self.data = data
         self.start = start
-        self.size = len(data)
 
+    @property
+    def size(self):
+        return len(self.data)
+
+    @property
+    def end(self):
+        return self.start + self.size
+
+    def resize(self, newSize, startEnd, newData=[]):
+        # 0 = start, 1 = end
+        if newSize < self.size:
+            if startEnd == 0:
+                self.start += self.size-newSize
+                self.data = self.data[self.size-newSize:]
+                assert self.size == newSize
+            else:
+                self.data = self.data[0:newSize]
+                assert self.size == newSize
+        else:
+            if startEnd == 0:
+                self.start += self.size-newSize
+                self.data = newData + self.data
+                assert self.size == newSize
+            else:
+                self.data = self.data + newData
+                assert self.size == newSize
+
+    def split(self, where):
+        return [Fragment(self.data[0:where], self.start), Fragment(self.data[where:], self.start+where)]
+
+    def doubleSplit(self, where1, where2):
+        return [ \
+            Fragment(self.data[0:where1], self.start), \
+            Fragment(self.data[where1:where2], self.start+where1), \
+            Fragment(self.data[where2:], self.start+where2) \
+            ]
+
+class DataFragment(Fragment):
     def __str__(self):
         out = []
         offset = 0
@@ -50,14 +87,8 @@ class DataFragment:
 
         return ''.join(out)
 
-class CodeFragment:
-    def __init__(self, data, start):
-        self.data = data
-        self.start = start
-        self.size = len(data)
-
+class CodeFragment(Fragment):
     def __str__(self):
-        #out = [title, '-' * len(title), '']
         out = []
         prog = pymsasid.Pymsasid(hook   = pymsasid.BufferHook,
                                  source = self.data,
@@ -69,7 +100,6 @@ class CodeFragment:
         instructions = []
 
         while currentOffset < self.start + self.size:
-            #print currentOffset, self.start, self.size
             instruction = prog.disassemble(currentOffset)
             currentOffset += instruction.size
             if instruction.size == 0:
@@ -79,11 +109,7 @@ class CodeFragment:
         
         for instruction in instructions:
             addr = instruction.pc - instruction.size
-            '''
-            name = self.process.symbols.get(addr, None)
-            if name:
-                out.append(' [%08x]\n [%08x] %s:' % (addr, addr, name))
-            '''
+
             def operand_to_str(operand):
                 address = None
 
@@ -99,11 +125,6 @@ class CodeFragment:
                     except:
                         address = -1
 
-                '''if address:
-                    symbol = self.process.symbols.get(address, None)
-                    if symbol:
-                        return symbol
-                '''
                 try:
                     q = repr(operand)
                 except:
