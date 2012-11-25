@@ -14,6 +14,7 @@ class Fragment(object):
         return self.start + self.size
 
     def resize(self, newSize, startEnd, newData=[]):
+        print "size: %d, newSize: %d, startEnd: %d, newData=" % (self.size, newSize, startEnd), newData
         # 0 = start, 1 = end
         if newSize < self.size:
             if startEnd == 0:
@@ -23,7 +24,7 @@ class Fragment(object):
             else:
                 self.data = self.data[0:newSize]
                 assert self.size == newSize
-        else:
+        elif newSize > self.size:
             if startEnd == 0:
                 self.start += self.size-newSize
                 self.data = newData + self.data
@@ -138,4 +139,80 @@ class CodeFragment(Fragment):
         return '\n'.join(out) + '\n\n'
 
     def getHtml(self):
-        return self.__str__()
+        out = []
+        out.append('<div class="content">')
+        
+        prog = pymsasid.Pymsasid(hook   = pymsasid.BufferHook,
+                                 source = self.data,
+                                 mode   = 32)
+        
+        prog.input.hook.base_address = self.start
+        currentOffset = self.start
+
+        instructions = []
+        xrefs = {}
+
+        while currentOffset < self.start + self.size:
+            instruction = prog.disassemble(currentOffset)
+            currentOffset += instruction.size
+            if instruction.size == 0:
+                instruction.pc = currentOffset+1
+                instruction.size = 1
+                currentOffset += self.size
+            instructions.append(instruction)
+
+        #print xrefs and names
+        for instruction in instructions:
+            sz = instruction.size
+            addr = instruction.pc - instruction.size
+
+            htmlAddr = '<div> [</div><div class="address">%08x</div><div>] </div>' % (addr)
+
+            out.append('<div class="row">')
+            out.append('<div class="toggle" onclick="sv.viewAs(\'data\', %d, %d)">C  </div>' % (addr, addr+sz))
+            out.append('<div> [</div>' + \
+                '<div class="address" id="%08x">%08x</div>' % \
+                (addr, addr) + \
+                '<div>] </div>')
+            out.append('<div class="operator">%-8s\t</div>' % str(instruction.operator))
+
+            for i in range(0, len(instruction.operand)):
+                op = instruction.operand[i]
+                
+                if op.type == 'OP_REG':
+                    try:
+                        out.append('<div class="operand_register">%s</div>' % op.base)
+                    except:
+                        out.append('<div class="operand_register">??</div>')
+                elif op.type == 'OP_MEM':
+                    out.append('<div>[</div>')
+                    try:
+                        out.append('<a href="#%08x"><div class="operand_address">%s0x%x</div></a>' \
+                            % (op.lval + op.pc - sz, '-' * (op.lval < 0), abs(op.lval)))
+                    except:
+                        out.append('<div class="operan_address">????????</div>')
+                    out.append('<div>]</div>')
+                elif op.type == 'OP_JIMM':
+                    try:
+                        out.append('<a href="#%08x"><div class="operand_address">%s0x%x</div></a>' \
+                            % (op.lval + op.pc, '-' * (op.lval < 0), abs(op.lval)))
+                    except:
+                        out.append('<div class="operand_address">????????</div>')
+
+                elif op.type == 'OP_IMM':
+                    try:
+                        out.append('<div class="operand_immediate">%s0x%x</div>' \
+                            % ('-' * (op.lval < 0), op.lval))
+                    except:
+                        out.append('<div class="operand_immediate">??</div>')
+                else:
+                    out.append('<div class="operand">QUALCOSA di tipo %s</div>' % op.type)
+
+                if i < len(instruction.operand) - 1:
+                    out.append('<div>, </div>')
+            # end row
+            out.append('</div>')
+            out.append('<br/>\n')
+
+        out.append('</div>')
+        return ''.join(out)

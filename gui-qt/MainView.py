@@ -53,17 +53,6 @@ class SectionViewer(QtCore.QObject):
 
     @QtCore.pyqtSlot(str, int, int)
     def viewAs(self, mode, start, end):
-        #print "Old intervals:"
-        #for (interval, f) in self.sect.fragments.items():
-        #    print "(%08x, %08x)" % (interval[0], interval[1])
-
-        #print 'Editing range (%08x, %08x) inside of range (%08x, %08x)' % \
-        #        (start, end, self.sect.start, self.sect.start+self.sect.size)
-        ######################################################################
-        #                                                                    #
-        #     TODO: check if also the section at [start-1] can be merged     #
-        #                                                                    #
-        ######################################################################
         dstart = start - self.sect.start
         dend = dstart + (end - start)
         data = self.sect.data[dstart:dend]
@@ -96,6 +85,7 @@ class SectionViewer(QtCore.QObject):
         else:
             # Need to place it at the beginning
             if start == prev.start and type(prev) != fragType:
+                print start, prev.start, end, prev.end
                 frag12 = prev.split(end-start)
                 prev.resize(prev.size-end+start, 0)
                 frag = fragType(frag12[0].data, frag12[0].start)
@@ -124,11 +114,13 @@ class SectionViewer(QtCore.QObject):
                 self.sect.fragments[frag1.start:frag1.end] = frag1
 
         if frag != None:
-            self.sect.fragments[start:end] = frag
+            if fragType == type(self.sect.fragments[start-1]):
+                x = self.sect.fragments[start-1]
+                x.resize(x.size+frag.size, 1, data)
+                self.sect.fragments[x.start:x.end] = x
+            else:
+                self.sect.fragments[start:end] = frag
         
-        #print "New intervals:"
-        #for (interval, f) in self.sect.fragments.items():
-        #    print "(%08x, %08x)" % (interval[0], interval[1])
         self.show()
 
     @QtCore.pyqtSlot(int)
