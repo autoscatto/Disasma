@@ -1,5 +1,6 @@
 from util.intervalmap import intervalmap
 from pymsasid import *
+from fragment import *
 
 class Section(object):
 	def __init__(self,
@@ -12,10 +13,17 @@ class Section(object):
 		self.size  = size
 		self.data  = data
 
+		self.fragments = intervalmap()
+		if name == '.text' or ('__TEXT' in name):
+			self.fragments[start:start+size] = CodeFragment(data[0:size], start)
+		else:
+			self.fragments[start:start+size] = DataFragment(data[0:size], start)
+
 	@property
 	def end(self):
 		return self.start + self.size
 
+	'''
 	def __str__(self):
 		def printablechar(x):
 			return x if x > 31 and x < 127 else ord('.')
@@ -58,15 +66,52 @@ class Section(object):
 			i += 1
 			
 		return '\n'.join(out) + '\n\n'
+	'''
+	def __str__(self):
+		out = []
+		for (interval, f) in self.fragments.items():
+			if interval[0] != interval[1]:
+				out.append(str(f))
+		return ''.join(out)
 
+	def getHTML(self):
+		out = []
+		out.append('    <div class="section">\n')
+
+		for (interval, f) in self.fragments.items():
+			if interval[0] != interval[1]:
+				out.append(f.getHtml())
+
+		out.append('    </div>\n')
+		out.append('  </body>\n')
+		out.append('</html>')
+
+		return ''.join(out)
+
+'''
 	def getHTML(self):
 		content = '<div class="content">'
 		title = '<div class="row"><div class="section">== Section %s : ==</div></div><br/>\n' % self.name
 		out = [content, title]
-		out.append('<div class="row">To be implemented</div><br/>')
+
+		for (i, char) in enumerate(self.data):
+			addr = i+self.start
+			v = ord(char)
+			out.append('<div class="row">')
+			out.append('<div> [</div>' + \
+				'<div class="address" id="%08x">%08x</div>' % (addr, addr) + \
+				'<div>] </div>')
+			out.append('<div class="operator">%-8s\t</div>' % 'db')
+			out.append('<div class="constant">%02x</div>' % v)
+			if v > 31 and v < 127:
+				out.append('<div class="comment"> ; \'%s\'</div>' % char)
+			out.append('<br/>')
+
 		out.append('</div>')
 		return ''.join(out)
+'''
 
+'''
 class CodeSection(Section):
 	def __str__(self):
 		title = 'Section ' + self.name + ':'
@@ -194,7 +239,7 @@ class CodeSection(Section):
 				if op.type == 'OP_REG':
 					out.append('<div class="operand_register">%s</div>' % op.base)
 				elif op.type == 'OP_MEM':
-					name = self.process.symbols.get(op.lval + op.pc - sz, None)
+					name = self.process.symbols.get(op.lval + op.pc, None)
 					if name:
 						out.append('<a href="#ref_%s"><div class="operand_reference">%s</div></a>' \
 							% (name, name))
@@ -204,7 +249,7 @@ class CodeSection(Section):
 							% (op.lval + op.pc - sz, '-' * (op.lval < 0), abs(op.lval))
 							+ '<div>]</div>')
 				elif op.type == 'OP_JIMM':
-					name = self.process.symbols.get(op.lval + op.pc - sz, None)
+					name = self.process.symbols.get(op.lval + op.pc, None)
 					if name:
 						out.append('<a href="#ref_%s"><div class="operand_reference">%s</div></a>' \
 							% (name, name))
@@ -225,6 +270,7 @@ class CodeSection(Section):
 
 		out.append('</div>')
 		return ''.join(out)
+'''
 
 class Process(object):
 	def __init__(self):

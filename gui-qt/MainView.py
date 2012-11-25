@@ -10,6 +10,7 @@ if not path in sys.path:
 del path
 
 from util import *
+from process import *
 
 class ANALyzer(QtCore.QObject):
     contentChanged = QtCore.pyqtSignal()
@@ -31,7 +32,7 @@ class ANALyzer(QtCore.QObject):
         self.stuff += self.vmv.getHTML()
         self.stuff += '<div class="content">'
         self.stuff += ''.join( \
-            '<div class="sect_row" onclick="sv.show(%d)"><div class="section">0x%08x-0x%08x: %s section</div></div><br/>\n' % \
+            '<div class="sect_row" onclick="sv.setAddr(%d)"><div class="section">0x%08x-0x%08x: %s section</div></div><br/>\n' % \
             (r[0], r[0], r[1], s.name) for (r, s) in process.sections.items())
         self.stuff += '</div></body></html>'
         # self.stuff = "<h1>te a me mi puppi la fava</h1>"
@@ -40,29 +41,139 @@ class ANALyzer(QtCore.QObject):
 class SectionViewer(QtCore.QObject):
     contentReady = QtCore.pyqtSignal()
 
-    def __init__(self, proc):
+    def __init__(self, proc, addr = 0):
         QtCore.QObject.__init__(self)
         self.proc = proc
+        self.sect = None
+        if addr != 0:
+            self.sect = self.proc.sections[addr]
 
     def setMemoryView(self, vmv):
         self.vmv = vmv
 
-    @QtCore.pyqtSlot(int)
-    def show(self, addr):
-        preinizzio = '<!DOCTYPE HTML>\n'
-        inizzio = '<html><head>' + \
-                  '<link rel="stylesheet" type="text/css" href="style.css"/>\n' + \
-                  '</head><body>'
+    @QtCore.pyqtSlot(str, int, int)
+    def viewAs(self, mode, start, end):
+        print "Old intervals:"
+        for (interval, f) in self.sect.fragments.items():
+            print "(%08x, %08x)" % (interval[0], interval[1])
 
-        stuff = [preinizzio, inizzio]
-        stuff.append(self.vmv.getHTML())
-        stuff.append(self.proc.sections[addr].getHTML())
+        print 'Editing range (%08x, %08x) inside of range (%08x, %08x)' % \
+                (start, end, self.sect.start, self.sect.start+self.sect.size)
+        dstart = start - self.sect.start
+        dend = dstart + (end - start)
+        data = self.sect.data[dstart:dend]
+
+        prev = self.sect.fragments[start]
+        next = self.sect.fragments[end]
+
+        fragType = fragment.CodeFragment if mode == 'code' else fragment.DataFragment
+        frag = None
+
+        next_ = None
+
+        if prev != next:
+            if type(prev) == fragType and type(next) == fragType:
+                print "This actually shouldn't happen"
+            # Enlarge your prev
+            elif type(prev) == fragType and type(next) != fragType:
+                prev.data = self.sect.data[0:end-prev.start]
+                prev.size = len(prev.data)
+                self.sect.fragments[prev.start:end] = prev
+
+                next.data = next.data[end-next.start:]
+                next.size = len(next.data)
+                next.start += end-next.start
+            # Enlarge your next
+            elif type(prev) != fragType and type(next) == fragType:
+                prev.data = prev.data[0:prev.start+prev.size-start]
+                prev.size = len(prev.data)
+
+                next.data = self.sect.data[dstart:next.start-self.sect.start+next.size]
+                next.size = len(next.data)
+                self.sect.fragments[start:start+next.size] = next
+            # Enlarge staceppa, must add a new fragment
+            else:
+                print "prev != next"
+                i = start - prev.start
+                j = i + (end-start)
+                j_ = prev.size - i
+
+                frag = fragType(prev.data[i:] + next.data[0:j_], start)
+                prev.data = prev.data[0:i]
+                prev.size = len(prev.data)
+                next.data = next.data[j_:]
+                next.size = len(next.data)
+                next.start += j_
+        else:
+            # Need to place it at the beginning
+            if start == prev.start and type(prev) != fragType:
+                print '1'
+                i = 0
+                j = end-start
+                frag = fragType(prev.data[i:j], start)
+                prev.data = prev.data[j:]
+                prev.size = len(prev.data)
+                prev.start += j
+            # Need to place it in the middle of prev
+            elif start != prev.start and end != prev.start + prev.size and type(prev) != fragType:
+                print '2'
+
+                print "Prev int: (%08x, %08x) size: %d" % (prev.start, prev.start+prev.size, prev.size)
+                nxType = fragment.CodeFragment if type(prev) == 'fragment.CodeFragment' else fragment.DataFragment
+                i = start-prev.start
+                j = i + (end-start)
+                frag = fragType(prev.data[i:j], start)
+                next_ = nxType(prev.data[j:], end)
+                self.sect.fragments[end:end+next_.size] = next_
+                print "Middle intervals:"
+                for (interval, f) in self.sect.fragments.items():
+                    print "(%08x, %08x)" % (interval[0], interval[1])
+                print 0, i, j, j+next_.size
+                prev.data = prev.data[0:i]
+                prev.size = len(prev.data)
+
+                print "Prev int: (%08x, %08x) size: %d (should be %d)" % (prev.start, prev.start+prev.size, prev.size, len(prev.data))
+                print "Frag int: (%08x, %08x) size: %d (should be %d)" % (frag.start, frag.start+frag.size, frag.size, len(frag.data))
+                print "Next_ int: (%08x, %08x) size: %d (should be %d)" % (next_.start, next_.start+next_.size, next_.size, len(next_.data))
+            # Need to place it at the end
+            elif type(prev) != fragType:
+                print '3'
+                i = start-prev.start
+                frag = fragType(prev.data[i:], start)
+                prev.data = prev.data[0:i]
+                prev.size = len(prev.data)
+
+        if frag != None:
+            self.sect.fragments[start:end] = frag
+        print "New intervals:"
+        for (interval, f) in self.sect.fragments.items():
+            print "(%08x, %08x)" % (interval[0], interval[1])
+        self.show()
+
+    @QtCore.pyqtSlot(int)
+    def setAddr(self, addr):
+        self.sect = self.proc.sections[addr]
+        self.show()
+
+    # @QtCore.pyqtSlot(int)
+    def show(self):
+        out = []
+        out.append('<!DOCTYPE HTML>\n')
+        out.append('<html>\n')
+        out.append('  <head>\n')
+        out.append('    <link rel="stylesheet" href="style.css" />\n')
+        out.append('  </head>\n')
+        out.append('  <body>\n')
+        out.append('    <div class="content">\n')
+        
+        out.append(self.vmv.getHTML())
+        out.append(self.sect.getHTML())
 
         # end content
-        stuff.append('</body>\n')
-        stuff.append('</html>')
+        out.append('</body>\n')
+        out.append('</html>')
 
-        self.stuff = ''.join(stuff)
+        self.stuff = ''.join(out)
         self.contentReady.emit()
 
 
@@ -106,7 +217,7 @@ class VirtualMemoryView(object):
         i = 0
         ret += '<div id="virtual-memory">\n'
         for (name, size, start) in self.sizes:
-            onclick = "sv.show(%d)" % start
+            onclick = "sv.setAddr(%d)" % start
             if name == '.text' or ('__TEXT' in name):
                 x = 'text'
             elif name == 'gap':

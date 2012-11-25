@@ -37,6 +37,7 @@ def SPUTA_FUORI_IL_ROSPO(filename):
 
     return process.__str__()
 
+'''
 def SPUTA_FUORI_IL_BOSCO(filename):
     from process.process import *
     process = Process()
@@ -48,6 +49,7 @@ def SPUTA_FUORI_IL_BOSCO(filename):
         process.addSection(section)
 
     return process.getHTML()
+'''
 
 def SPUTA_FUORI_IL_MOSTO(filename):
     from process.process import *

@@ -160,7 +160,8 @@ class ElfFile(object):
                 self.vmem[shentry.sh_addr] = shentry
 
             secdata = self.data[shentry.sh_offset:shentry.sh_offset+shentry.sh_size]
-            sectionClass = CodeSection if shentry.getName() == '.text' else Section
+            # sectionClass = CodeSection if shentry.getName() == '.text' else Section
+            sectionClass = Section
             self.sections.append(sectionClass(shentry.getName(),
                                               shentry.sh_addr,
                                               shentry.sh_size,
