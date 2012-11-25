@@ -1,5 +1,13 @@
 from pymsasid import *
 
+def outappend(out,eccepto,trio,*cose):
+        try:
+            out.append( trio % cose)
+        except:
+            out.append(eccepto)
+
+
+
 class Fragment(object):
     def __init__(self, data, start):
         self.data = data
@@ -93,7 +101,7 @@ class CodeFragment(Fragment):
         prog = pymsasid.Pymsasid(hook   = pymsasid.BufferHook,
                                  source = self.data,
                                  mode   = 32)
-        
+
         prog.input.hook.base_address = self.start
         currentOffset = self.start
 
@@ -106,7 +114,7 @@ class CodeFragment(Fragment):
                 instruction.pc = currentOffset+1
                 currentOffset += self.size
             instructions.append(instruction)
-        
+
         for instruction in instructions:
             addr = instruction.pc - instruction.size
 
@@ -137,14 +145,15 @@ class CodeFragment(Fragment):
 
         return '\n'.join(out) + '\n\n'
 
+
     def getHtml(self):
         out = []
         out.append('<div class="content">')
-        
+
         prog = pymsasid.Pymsasid(hook   = pymsasid.BufferHook,
                                  source = self.data,
                                  mode   = 32)
-        
+
         prog.input.hook.base_address = self.start
         currentOffset = self.start
 
@@ -177,35 +186,15 @@ class CodeFragment(Fragment):
 
             for i in range(0, len(instruction.operand)):
                 op = instruction.operand[i]
-                
-                if op.type == 'OP_REG':
-                    try:
-                        out.append('<div class="operand_register">%s</div>' % op.base)
-                    except:
-                        out.append('<div class="operand_register">??</div>')
-                elif op.type == 'OP_MEM':
-                    out.append('<div>[</div>')
-                    try:
-                        out.append('<a href="#%08x"><div class="operand_address">%s0x%x</div></a>' \
-                            % (op.lval + op.pc - sz, '-' * (op.lval < 0), abs(op.lval)))
-                    except:
-                        out.append('<div class="operan_address">????????</div>')
-                    out.append('<div>]</div>')
-                elif op.type == 'OP_JIMM':
-                    try:
-                        out.append('<a href="#%08x"><div class="operand_address">%s0x%x</div></a>' \
-                            % (op.lval + op.pc, '-' * (op.lval < 0), abs(op.lval)))
-                    except:
-                        out.append('<div class="operand_address">????????</div>')
 
-                elif op.type == 'OP_IMM':
-                    try:
-                        out.append('<div class="operand_immediate">%s0x%x</div>' \
-                            % ('-' * (op.lval < 0), op.lval))
-                    except:
-                        out.append('<div class="operand_immediate">??</div>')
-                else:
-                    out.append('<div class="operand">QUALCOSA di tipo %s</div>' % op.type)
+                #TODO: da rivedere tutto, tipo templating per html, string formatter, qualche cazzo di stream personalizzato al posto di out etc etc.
+
+                OPTYPE={
+                    'OP_REG': lambda: outappend(out,'<div class="operand_register">??</div>','<div class="operand_register">%s</div>',op.base),
+                    'OP_MEM': lambda: outappend(out,'<div>[</div><div class="operan_address">????????</div><div>]</div>','<div>[</div><a href="#%08x"><div class="operand_address">%s0x%x</div></a><div>]</div>',op.lval + op.pc - sz, '-' * (op.lval < 0), abs(op.lval)),
+                    'OP_JIMM': lambda: outappend(out,'<div class="operand_address">????????</div>','<a href="#%08x"><div class="operand_address">%s0x%x</div></a>',op.lval + op.pc, '-' * (op.lval < 0), abs(op.lval)),
+                    'OP_IMM': lambda: outappend(out,'<div class="operand_immediate">??</div>','<div class="operand_immediate">%s0x%x</div>','-' * (op.lval < 0), op.lval)
+                    }.get(op.type,lambda: out.append('<div class="operand">QUALCOSA di tipo %s</div>' % op.type))()
 
                 if i < len(instruction.operand) - 1:
                     out.append('<div>, </div>')
