@@ -1,8 +1,14 @@
 import struct
 
+## This class associates a name to each of the fields of a struct.Struct object
+#  and allows to access fields by those names.
 class NamedStruct(object):
+	## contains the struct.Struct object
 	struct     = None
+	## endianness expressed as in struct module
 	endianness = ''
+	## tuple of pairs (name, format character) where format character is 
+	#  expressed as in struct module
 	definition = ()
 
 	def __init__(self, data, offset = 0):

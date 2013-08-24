@@ -30,7 +30,12 @@ class ANALyzer(QtCore.QObject):
                   '</head><body>'
         self.stuff = preinizzio+inizzio
         self.stuff += self.vmv.getHTML()
-        self.stuff += '<div class="content">'
+        self.stuff += """
+            <div class="content" style='-moz-user-select: none; -webkit-user-select: none; -ms-user-select:none; user-select:none;' 
+ unselectable='on'
+ onselectstart='return false;' 
+ onmousedown='return false;'>
+ """
         self.stuff += ''.join( \
             '<div class="sect_row" onclick="sv.setAddr(%d)"><div class="section">0x%08x-0x%08x: %s section</div></div><br/>\n' % \
             (r[0], r[0], r[1], s.name) for (r, s) in process.sections.items())
@@ -53,8 +58,10 @@ class SectionViewer(QtCore.QObject):
 
     @QtCore.pyqtSlot(str, int, int)
     def viewAs(self, mode, start, end):
-        fragType = fragment.CodeFragment if mode == 'code' else fragment.DataFragment
-        self.sect.addFragment(fragType, start, end)        
+        #fragType = fragment.CodeFragment if mode == 'code' else fragment.DataFragment
+        #self.sect.addFragment(fragType, start, end)
+        viewType = 'D' if mode == 'D' else 'C'
+        self.sect.cdmap[start-self.sect.start:end-self.sect.start] = viewType
         self.show()
 
     @QtCore.pyqtSlot(int)

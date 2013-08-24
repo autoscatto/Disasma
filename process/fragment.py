@@ -6,8 +6,6 @@ def outappend(out,eccepto,trio,*cose):
         except:
             out.append(eccepto)
 
-
-
 class Fragment(object):
     def __init__(self, data, start):
         self.data = data
@@ -174,7 +172,7 @@ class CodeFragment(Fragment):
             sz = instruction.size
             addr = instruction.pc - instruction.size
 
-            htmlAddr = '<div> [</div><div class="address">%08x</div><div>] </div>' % (addr)
+            htmlAddr = '<div>[</div><div class="address">%08x</div><div>]</div>' % (addr)
 
             out.append('<div class="row">')
             out.append('<div class="toggle" onclick="sv.viewAs(\'data\', %d, %d)">C  </div>' % (addr, addr+sz))
